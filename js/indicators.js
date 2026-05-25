@@ -217,6 +217,29 @@ export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
     return signals;
 }
 
+export function detectRegime(data, sma20, bb, atr) {
+    if (data.length < 50 || !sma20.length || !bb.upper.length || !atr.length) return { regime: 'unknown', label: '—' };
+    const last = data[data.length - 1];
+    const curSma = sma20[sma20.length - 1].value;
+    const prevSma = sma20.length > 10 ? sma20[sma20.length - 11].value : curSma;
+    const smaSlope = (curSma - prevSma) / prevSma * 100;
+    const bbWidth = (bb.upper[bb.upper.length - 1].value - bb.lower[bb.lower.length - 1].value) / curSma * 100;
+    const bbWidths = [];
+    for (let i = Math.max(0, bb.upper.length - 20); i < bb.upper.length; i++) {
+        bbWidths.push((bb.upper[i].value - bb.lower[i].value) / (sma20[Math.min(i, sma20.length - 1)]?.value || curSma) * 100);
+    }
+    const avgBBW = bbWidths.reduce((a, b) => a + b, 0) / bbWidths.length;
+    const curATR = atr[atr.length - 1].value;
+    const avgATRs = [];
+    for (let i = Math.max(0, atr.length - 20); i < atr.length; i++) avgATRs.push(atr[i].value);
+    const avgATR = avgATRs.reduce((a, b) => a + b, 0) / avgATRs.length;
+    const volRatio = curATR / avgATR;
+
+    if (volRatio > 1.5 || bbWidth > avgBBW * 1.5) return { regime: 'volatile', label: 'Высокая волатильность', color: '#ff9800', smaSlope, bbWidth, volRatio };
+    if (Math.abs(smaSlope) > 1.5) return { regime: smaSlope > 0 ? 'uptrend' : 'downtrend', label: smaSlope > 0 ? 'Восходящий тренд' : 'Нисходящий тренд', color: smaSlope > 0 ? '#26a69a' : '#ef5350', smaSlope, bbWidth, volRatio };
+    return { regime: 'flat', label: 'Боковик (флэт)', color: '#787b86', smaSlope, bbWidth, volRatio };
+}
+
 export function timeKey(t) {
     if (typeof t === 'string') return t;
     if (typeof t === 'number') return t;

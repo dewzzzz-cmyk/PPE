@@ -63,6 +63,9 @@
         .ticker-result { padding: 5px 10px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; }
         .ticker-result:hover { background: #2a2e39; }
         .ticker-result .tr-name { color: #787b86; font-size: 11px; }
+        .wl-item .wl-del { display: none; background: none; border: none; color: #ef5350; cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; }
+        .wl-item:hover .wl-del { display: block; }
+        .regime-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid; margin-left: 6px; }
         .green { color: #26a69a; }
         .red { color: #ef5350; }
 
@@ -126,6 +129,18 @@
         .overlay-tag .ot-dot { width: 8px; height: 8px; border-radius: 50%; }
         .overlay-tag .ot-remove { cursor: pointer; color: #ef5350; font-size: 13px; margin-left: 4px; }
 
+        /* Multichart */
+        .multichart-overlay { display: none; position: fixed; inset: 0; background: #131722; z-index: 200; }
+        .multichart-overlay.show { display: flex; flex-direction: column; }
+        .mc-header { display: flex; align-items: center; padding: 6px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; gap: 10px; }
+        .mc-header h2 { font-size: 14px; color: #787b86; font-weight: 600; }
+        .mc-close { background: none; border: 1px solid #363a45; color: #d1d4dc; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: auto; }
+        .mc-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; padding: 2px; }
+        .mc-cell { background: #1a1d29; position: relative; display: flex; flex-direction: column; }
+        .mc-cell-header { padding: 4px 8px; font-size: 12px; font-weight: 600; background: #1e222d; border-bottom: 1px solid #2a2e39; cursor: pointer; }
+        .mc-cell-header:hover { color: #2962ff; }
+        .mc-chart { flex: 1; min-height: 0; }
+
         /* Draw mode cursor */
         #chart-container.draw-active { cursor: crosshair; }
 
@@ -179,6 +194,7 @@
                         <div class="overlay-active" id="overlay-active"></div>
                     </div>
                 </div>
+                <button class="icon-btn" id="multichart-btn" title="Мультичарт 2x2">2x2</button>
                 <button class="icon-btn" id="ob-toggle" title="Стакан">Стакан</button>
             </div>
             <div class="info-bar">
@@ -193,6 +209,7 @@
                 <span class="sep">|</span>
                 <span><span class="label">RSI</span><span class="val" id="info-rsi">&mdash;</span></span>
                 <span><span class="label">MACD</span><span class="val" id="info-macd">&mdash;</span></span>
+                <span class="regime-badge" id="regime-badge" style="display:none"></span>
                 <span class="delay-badge">задержка ~15 мин</span>
             </div>
             <div id="chart-container"></div>
@@ -216,9 +233,13 @@
             <div class="ob-body" id="ob-body"></div>
         </aside>
     </div>
+    <div class="multichart-overlay" id="multichart-overlay">
+        <div class="mc-header"><h2>Мультичарт</h2><button class="mc-close" id="mc-close">Закрыть (Esc)</button></div>
+        <div class="mc-grid" id="mc-grid"></div>
+    </div>
 
     <script type="module">
-    import { calcSMA, calcBB, calcRSI, calcMACD, calcATR, detectPatterns, findSR, generateSignals, timeKey } from './js/indicators.js';
+    import { calcSMA, calcBB, calcRSI, calcMACD, calcATR, detectPatterns, findSR, generateSignals, detectRegime, timeKey } from './js/indicators.js';
     import { fetchCandles, fetchPrices, fetchOrderBook, fetchOverlayCandles, searchSecurities } from './js/moex.js';
     import { loadAlerts, addAlert, removeAlert, checkAlerts, requestPermission } from './js/alerts.js';
 
@@ -386,7 +407,20 @@
                 }
             }
         });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawMode) exitDrawMode('Отменено'); });
+        document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'Escape') { if (drawMode) { exitDrawMode('Отменено'); return; } if (document.getElementById('multichart-overlay').classList.contains('show')) { closeMultichart(); return; } }
+            if (e.key === 'm' || e.key === 'M') { if (document.getElementById('multichart-overlay').classList.contains('show')) closeMultichart(); else openMultichart(); return; }
+            if (e.key >= '1' && e.key <= '6') { const idx = parseInt(e.key) - 1; if (idx < TIMEFRAMES.length) { const btns = tfBar.querySelectorAll('button'); btns.forEach(b => b.classList.remove('active')); btns[idx]?.classList.add('active'); currentTF = TIMEFRAMES[idx]; loadData(); } return; }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                const idx = TICKERS.indexOf(currentTicker);
+                const next = e.key === 'ArrowRight' ? (idx + 1) % TICKERS.length : (idx - 1 + TICKERS.length) % TICKERS.length;
+                selectTicker(TICKERS[next]); return;
+            }
+            const toolMap = { h: 'hline', a: 'alert', f: 'fib', t: 'trend' };
+            if (toolMap[e.key]) { document.querySelector(`[data-tool="${toolMap[e.key]}"]`)?.click(); return; }
+            if (e.key === 'c' || e.key === 'C') { document.getElementById('clear-draw')?.click(); return; }
+        });
         window.addEventListener('resize', resizeChart);
     }
 
@@ -479,7 +513,7 @@
     function renderAdvisor() {
         const body = document.getElementById('advisor-body');
         if (!lastData.length) { body.innerHTML = '<span class="muted">Нет данных</span>'; return; }
-        const { sma20, sma50, rsi, macdData, sr, patterns, signals, atr } = lastIndicators;
+        const { sma20, sma50, rsi, macdData, sr, patterns, signals, atr, regime } = lastIndicators;
         const last = lastData[lastData.length - 1];
         const lines = [];
         const cur20 = sma20.length ? sma20[sma20.length-1].value : null;
@@ -494,6 +528,7 @@
         const recentP = patterns.filter(p => p.idx >= lastData.length - 3);
         if (recentP.length) recentP.forEach(p => lines.push(`${p.dir === 'bull' ? '▲' : p.dir === 'bear' ? '▼' : '◆'} Паттерн: ${p.name} (${p.conf}%)`));
 
+        if (regime && regime.regime !== 'unknown') lines.unshift(`<span style="color:${regime.color}">● ${regime.label}</span> (наклон SMA ${regime.smaSlope?.toFixed(1)}%, ширина BB ${regime.bbWidth?.toFixed(1)}%, ATR ratio ${regime.volRatio?.toFixed(2)})`);
         let html = lines.map(l => `<div class="adv-line">${l}</div>`).join('');
 
         const lastSig = signals.length ? signals[signals.length - 1] : null;
@@ -582,6 +617,17 @@
             tickerBar.appendChild(btn);
         }
         selectTicker(ticker);
+        refreshWatchlist();
+    }
+
+    function removeTickerFromWatchlist(ticker) {
+        if (TICKERS.length <= 1) return;
+        const idx = TICKERS.indexOf(ticker);
+        if (idx === -1) return;
+        TICKERS.splice(idx, 1);
+        const btn = tickerBar.querySelector(`[data-ticker="${ticker}"]`);
+        if (btn) btn.remove();
+        if (currentTicker === ticker) selectTicker(TICKERS[0]);
         refreshWatchlist();
     }
 
@@ -749,7 +795,12 @@
             const macdData = calcMACD(data, 12, 26, 9), atr = calcATR(data, 14);
             const patterns = detectPatterns(data), sr = findSR(data);
             const signals = generateSignals(data, rsi, macdData, sma20, sma50, bb);
-            lastIndicators = { sma20, sma50, bb, rsi, macdData, atr, patterns, sr, signals };
+            const regime = detectRegime(data, sma20, bb, atr);
+            lastIndicators = { sma20, sma50, bb, rsi, macdData, atr, patterns, sr, signals, regime };
+            const rb = document.getElementById('regime-badge');
+            rb.textContent = regime.label; rb.style.color = regime.color || '#787b86';
+            rb.style.borderColor = (regime.color || '#787b86') + '40'; rb.style.background = (regime.color || '#787b86') + '15';
+            rb.style.display = regime.regime !== 'unknown' ? 'inline' : 'none';
 
             dataLookup = new Map();
             for (const d of data) dataLookup.set(timeKey(d.time), { ...d });
@@ -801,7 +852,9 @@
                 const prDiv = document.createElement('div'); prDiv.className = 'wl-price'; prDiv.textContent = p.last.toFixed(2);
                 const chDiv = document.createElement('div'); chDiv.className = 'wl-change'; chDiv.style.color = col; chDiv.textContent = cs;
                 right.append(prDiv, chDiv);
-                el.append(left, right);
+                const del = document.createElement('button'); del.className = 'wl-del'; del.textContent = '✕';
+                del.onclick = (ev) => { ev.stopPropagation(); removeTickerFromWatchlist(p.ticker); };
+                el.append(left, right, del);
                 el.onclick = () => selectTicker(p.ticker);
                 body.appendChild(el);
                 if (p.ticker === currentTicker) checkAlerts(currentTicker, p.last);
@@ -838,6 +891,57 @@
             });
             body.innerHTML = html;
         } catch { body.innerHTML = '<div class="ob-spread">Стакан недоступен</div>'; }
+    }
+
+    // ---- Multichart ----
+    let mcCharts = [];
+    document.getElementById('multichart-btn').onclick = () => openMultichart();
+    document.getElementById('mc-close').onclick = () => closeMultichart();
+
+    function openMultichart() {
+        const overlay = document.getElementById('multichart-overlay');
+        overlay.classList.add('show');
+        const grid = document.getElementById('mc-grid');
+        grid.innerHTML = '';
+        mcCharts.forEach(c => c.chart.remove());
+        mcCharts = [];
+        const tickers = TICKERS.slice(0, 4);
+        for (const ticker of tickers) {
+            const cell = document.createElement('div'); cell.className = 'mc-cell';
+            const header = document.createElement('div'); header.className = 'mc-cell-header'; header.textContent = ticker;
+            header.onclick = () => { closeMultichart(); selectTicker(ticker); };
+            const chartDiv = document.createElement('div'); chartDiv.className = 'mc-chart';
+            cell.append(header, chartDiv);
+            grid.appendChild(cell);
+            const miniChart = createChart(chartDiv, {
+                width: chartDiv.clientWidth || 400, height: chartDiv.clientHeight || 300,
+                localization: { locale: 'ru-RU' },
+                layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc' },
+                grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+                rightPriceScale: { borderColor: '#2a2e39' },
+                timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false },
+            });
+            const cs = miniChart.addSeries(CandlestickSeries, { upColor: '#26a69a', downColor: '#ef5350', borderUpColor: '#26a69a', borderDownColor: '#ef5350', wickUpColor: '#26a69a', wickDownColor: '#ef5350' });
+            mcCharts.push({ chart: miniChart, series: cs, ticker, el: chartDiv });
+            loadMiniChart(ticker, cs, miniChart);
+        }
+        setTimeout(() => mcCharts.forEach(mc => mc.chart.applyOptions({ width: mc.el.clientWidth, height: mc.el.clientHeight })), 100);
+    }
+
+    async function loadMiniChart(ticker, series, chart) {
+        try {
+            const data = await fetchCandles(ticker, currentTF.interval, currentTF.days);
+            if (data.length) {
+                series.setData(data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close })));
+                chart.timeScale().fitContent();
+            }
+        } catch {}
+    }
+
+    function closeMultichart() {
+        document.getElementById('multichart-overlay').classList.remove('show');
+        mcCharts.forEach(c => c.chart.remove());
+        mcCharts = [];
     }
 
     // ---- Init ----
