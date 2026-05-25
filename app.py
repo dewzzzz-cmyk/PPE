@@ -1,12 +1,15 @@
 """Entry point — run the MOEX Trading Dashboard."""
 
-from src.config import DASH_HOST, DASH_PORT, DASH_DEBUG
+import os
+
 from src.dashboard.app import create_app
 
 app = create_app()
 server = app.server  # for gunicorn
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8050))
+    debug = os.environ.get("DASH_DEBUG", "true").lower() == "true"
     print(f"\n  MOEX Trading Dashboard")
-    print(f"  http://localhost:{DASH_PORT}\n")
-    app.run(host=DASH_HOST, port=DASH_PORT, debug=DASH_DEBUG)
+    print(f"  http://localhost:{port}\n")
+    app.run(host="0.0.0.0", port=port, debug=debug)
