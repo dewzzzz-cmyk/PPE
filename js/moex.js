@@ -30,13 +30,11 @@ export async function fetchPrices(tickers) {
     const secCols = data.securities.columns;
     const mktCols = data.marketdata.columns;
     const ci = (cols, name) => cols.indexOf(name);
-
     const secMap = {};
     for (const r of data.securities.data) {
         const id = r[ci(secCols, 'SECID')];
         if (!secMap[id]) secMap[id] = { shortname: r[ci(secCols, 'SHORTNAME')] };
     }
-
     const result = [];
     const seen = new Set();
     for (const r of data.marketdata.data) {
@@ -48,11 +46,27 @@ export async function fetchPrices(tickers) {
         result.push({
             ticker: id,
             shortname: secMap[id]?.shortname || id,
-            last,
-            change: r[ci(mktCols, 'LASTCHANGEPCT')] ?? null,
+            last, change: r[ci(mktCols, 'LASTCHANGEPCT')] ?? null,
             volume: r[ci(mktCols, 'VOLTODAY')],
             time: r[ci(mktCols, 'UPDATETIME')] || '',
         });
     }
     return result;
+}
+
+export async function fetchOrderBook(ticker) {
+    const url = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${ticker}/orderbook.json?iss.meta=off`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const cols = data.orderbook.columns;
+    const ci = (name) => cols.indexOf(name);
+    const bids = [], asks = [];
+    for (const row of data.orderbook.data) {
+        const entry = { price: row[ci('PRICE')], quantity: row[ci('QUANTITY')] };
+        if (row[ci('BUYSELL')] === 'B') bids.push(entry);
+        else asks.push(entry);
+    }
+    bids.sort((a, b) => b.price - a.price);
+    asks.sort((a, b) => a.price - b.price);
+    return { bids: bids.slice(0, 15), asks: asks.slice(0, 15) };
 }

@@ -11,13 +11,14 @@
 
         .app { display: flex; height: 100vh; }
 
-        .watchlist { width: 220px; background: #1a1d29; border-right: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
+        /* Watchlist */
+        .watchlist { width: 200px; background: #1a1d29; border-right: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
         .watchlist.collapsed { width: 0; border-right: none; }
-        .wl-header { padding: 8px 12px; border-bottom: 1px solid #2a2e39; font-size: 12px; font-weight: 600; color: #787b86; }
+        .side-header { padding: 8px 12px; border-bottom: 1px solid #2a2e39; font-size: 12px; font-weight: 600; color: #787b86; }
         .wl-body { flex: 1; overflow-y: auto; }
-        .wl-body::-webkit-scrollbar { width: 4px; }
-        .wl-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
-        .wl-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(42,46,57,0.3); transition: background 0.15s; }
+        .wl-body::-webkit-scrollbar, .ob-body::-webkit-scrollbar { width: 4px; }
+        .wl-body::-webkit-scrollbar-thumb, .ob-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
+        .wl-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; cursor: pointer; border-bottom: 1px solid rgba(42,46,57,0.3); }
         .wl-item:hover { background: rgba(42,46,57,0.5); }
         .wl-item.active { background: rgba(41,98,255,0.12); border-left: 3px solid #2962ff; padding-left: 9px; }
         .wl-ticker { font-size: 13px; font-weight: 600; }
@@ -27,46 +28,104 @@
 
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-        .toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; flex-shrink: 0; }
-        .toolbar h1 { font-size: 14px; font-weight: 600; color: #787b86; white-space: nowrap; }
-        .wl-btn { background: none; border: 1px solid #363a45; color: #787b86; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 14px; line-height: 1; }
-        .wl-btn:hover { color: #d1d4dc; border-color: #787b86; }
+        /* Toolbar */
+        .toolbar { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #1e222d; border-bottom: 1px solid #2a2e39; flex-shrink: 0; flex-wrap: wrap; }
+        .toolbar h1 { font-size: 14px; font-weight: 600; color: #787b86; }
+        .icon-btn { background: none; border: 1px solid #363a45; color: #787b86; padding: 2px 7px; border-radius: 3px; cursor: pointer; font-size: 12px; line-height: 1.4; }
+        .icon-btn:hover { color: #d1d4dc; border-color: #787b86; }
+        .icon-btn.active { color: #2962ff; border-color: #2962ff; background: rgba(41,98,255,0.1); }
         .tickers { display: flex; gap: 3px; flex-wrap: wrap; }
-        .tickers button { background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .tickers button { background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 3px 9px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .tickers button:hover { background: #363a45; }
         .tickers button.active { background: #2962ff; border-color: #2962ff; color: #fff; }
-        .timeframes { display: flex; gap: 2px; margin-left: 8px; }
-        .timeframes button { background: transparent; color: #787b86; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .timeframes { display: flex; gap: 2px; }
+        .timeframes button { background: transparent; color: #787b86; border: none; padding: 3px 7px; border-radius: 3px; cursor: pointer; font-size: 12px; }
         .timeframes button:hover { color: #d1d4dc; }
         .timeframes button.active { color: #2962ff; background: rgba(41,98,255,0.1); }
+        .vsep { width: 1px; height: 18px; background: #2a2e39; margin: 0 2px; }
+        .toggle-lbl { display: flex; align-items: center; gap: 3px; font-size: 11px; color: #787b86; cursor: pointer; }
 
+        /* Info bar */
         .info-bar { display: flex; align-items: center; gap: 12px; padding: 3px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
         .info-bar .ticker-name { font-size: 15px; font-weight: 600; }
         .info-bar .price { font-size: 14px; font-weight: 600; }
         .info-bar .change { font-size: 12px; font-weight: 500; }
         .info-bar .label { color: #787b86; }
         .info-bar .val { color: #d1d4dc; margin-left: 3px; }
-        .info-bar .sep { color: #363a45; margin: 0 2px; }
+        .info-bar .sep { color: #363a45; }
         .green { color: #26a69a; }
         .red { color: #ef5350; }
 
-        #chart-container { flex: 1; min-height: 0; }
+        #chart-container { flex: 1; min-height: 0; position: relative; }
+
+        /* Bottom panel */
+        .bottom-panel { height: 150px; background: #1a1d29; border-top: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: height 0.2s; }
+        .bottom-panel.collapsed { height: 26px; }
+        .panel-tabs { display: flex; background: #1e222d; flex-shrink: 0; }
+        .panel-tab { background: none; border: none; color: #787b86; padding: 5px 14px; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; }
+        .panel-tab:hover { color: #d1d4dc; }
+        .panel-tab.active { color: #d1d4dc; border-bottom-color: #2962ff; }
+        .panel-collapse { margin-left: auto; background: none; border: none; color: #787b86; cursor: pointer; padding: 5px 10px; font-size: 12px; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 12px; }
+        .panel-body::-webkit-scrollbar { width: 4px; }
+        .panel-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
+
+        /* Advisor */
+        .adv-line { padding: 2px 0; line-height: 1.5; }
+        .adv-rec { margin-top: 6px; padding: 8px; border-radius: 4px; background: #1e222d; }
+        .adv-rec.buy { border-left: 3px solid #26a69a; }
+        .adv-rec.sell { border-left: 3px solid #ef5350; }
+        .adv-rec.neutral { border-left: 3px solid #787b86; }
+        .adv-rec b { font-size: 14px; }
+        .muted { color: #787b86; }
+
+        /* Signal / alert tables */
+        table.data { width: 100%; border-collapse: collapse; font-size: 11px; }
+        table.data th { text-align: left; color: #787b86; font-weight: 500; padding: 3px 8px; border-bottom: 1px solid #2a2e39; }
+        table.data td { padding: 3px 8px; border-bottom: 1px solid rgba(42,46,57,0.3); }
+        .del-btn { background: none; border: none; color: #ef5350; cursor: pointer; font-size: 12px; }
 
         .status-bar { padding: 3px 12px; font-size: 11px; color: #787b86; background: #1e222d; border-top: 1px solid #2a2e39; flex-shrink: 0; }
+
+        /* Order book */
+        .orderbook { width: 180px; background: #1a1d29; border-left: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
+        .orderbook.collapsed { width: 0; border-left: none; }
+        .ob-body { flex: 1; overflow-y: auto; }
+        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 2px 8px; font-size: 11px; }
+        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: 0.18; }
+        .ob-row.ask .ob-bar { background: #ef5350; }
+        .ob-row.bid .ob-bar { background: #26a69a; }
+        .ob-row.ask .ob-price { color: #ef5350; }
+        .ob-row.bid .ob-price { color: #26a69a; }
+        .ob-price, .ob-vol { z-index: 1; }
+        .ob-vol { color: #787b86; }
+        .ob-spread { padding: 4px 8px; font-size: 11px; color: #787b86; text-align: center; border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39; background: #1e222d; }
     </style>
 </head>
 <body>
     <div class="app">
         <aside class="watchlist" id="watchlist">
-            <div class="wl-header">Вотчлист</div>
+            <div class="side-header">Вотчлист</div>
             <div class="wl-body" id="wl-body"></div>
         </aside>
         <div class="main">
             <div class="toolbar">
-                <button class="wl-btn" id="wl-toggle" title="Вотчлист">&#9776;</button>
+                <button class="icon-btn" id="wl-toggle" title="Вотчлист">&#9776;</button>
                 <h1>MOEX</h1>
                 <div class="tickers" id="ticker-bar"></div>
+                <div class="vsep"></div>
                 <div class="timeframes" id="tf-bar"></div>
+                <div class="vsep"></div>
+                <button class="icon-btn" data-tool="hline" title="Горизонтальный уровень">Уровень</button>
+                <button class="icon-btn" data-tool="alert" title="Алерт по цене">Алерт</button>
+                <button class="icon-btn" data-tool="fib" title="Фибоначчи">Фибо</button>
+                <button class="icon-btn" data-tool="trend" title="Трендлиния">Тренд</button>
+                <button class="icon-btn" id="clear-draw" title="Очистить рисунки">Очистить</button>
+                <div class="vsep"></div>
+                <label class="toggle-lbl"><input type="checkbox" id="sig-toggle" checked> Сигналы</label>
+                <label class="toggle-lbl"><input type="checkbox" id="sr-toggle" checked> S/R</label>
+                <div class="vsep"></div>
+                <button class="icon-btn" id="ob-toggle" title="Стакан">Стакан</button>
             </div>
             <div class="info-bar">
                 <span class="ticker-name" id="info-ticker">SBER</span>
@@ -82,15 +141,32 @@
                 <span><span class="label">MACD</span><span class="val" id="info-macd">&mdash;</span></span>
             </div>
             <div id="chart-container"></div>
+            <div class="bottom-panel" id="bottom-panel">
+                <div class="panel-tabs">
+                    <button class="panel-tab active" data-tab="advisor">Советник</button>
+                    <button class="panel-tab" data-tab="signals">Сигналы</button>
+                    <button class="panel-tab" data-tab="alerts">Алерты</button>
+                    <button class="panel-collapse" id="panel-collapse" title="Свернуть">&#9660;</button>
+                </div>
+                <div class="panel-body" id="advisor-body"></div>
+                <div class="panel-body" id="signals-body" style="display:none"></div>
+                <div class="panel-body" id="alerts-body" style="display:none"></div>
+            </div>
             <div class="status-bar" id="status">Загрузка...</div>
         </div>
+        <aside class="orderbook collapsed" id="orderbook">
+            <div class="side-header">Стакан</div>
+            <div class="ob-body" id="ob-body"></div>
+        </aside>
     </div>
 
     <script type="module">
-    import { calcSMA, calcBB, calcRSI, calcMACD } from './js/indicators.js';
-    import { fetchCandles, fetchPrices } from './js/moex.js';
+    import { calcSMA, calcBB, calcRSI, calcMACD, calcATR, detectPatterns, findSR, generateSignals, timeKey } from './js/indicators.js';
+    import { fetchCandles, fetchPrices, fetchOrderBook } from './js/moex.js';
+    import { loadAlerts, addAlert, removeAlert, checkAlerts, requestPermission } from './js/alerts.js';
 
     const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = LightweightCharts;
+    const DRAW_KEY = 'moex_drawings';
 
     const TICKERS = ['SBER','GAZP','LKOH','YNDX','GMKN','ROSN','NVTK','MTSS','MGNT','PLZL'];
     const TIMEFRAMES = [
@@ -102,22 +178,21 @@
 
     let currentTicker = 'SBER', currentTF = TIMEFRAMES[0];
     let dataLookup = new Map();
+    let lastData = [], lastIndicators = {};
     let chart;
     let candleSeries, volumeSeries, sma20Series, sma50Series, bb1Series, bb2Series;
     let rsiSeries, macdLineSrs, macdSignalSrs, macdHistSrs;
+    let srLines = [], drawSeries = [], drawPriceLines = [], alertLines = [];
+    let drawMode = null, pendingPoint = null;
 
     // ---- UI ----
-
-    document.getElementById('wl-toggle').onclick = () => {
-        document.getElementById('watchlist').classList.toggle('collapsed');
-        setTimeout(resizeChart, 250);
-    };
+    document.getElementById('wl-toggle').onclick = () => { document.getElementById('watchlist').classList.toggle('collapsed'); setTimeout(resizeChart, 250); };
+    document.getElementById('ob-toggle').onclick = () => { const o = document.getElementById('orderbook'); o.classList.toggle('collapsed'); if (!o.classList.contains('collapsed')) refreshOrderBook(); };
 
     const tickerBar = document.getElementById('ticker-bar');
     TICKERS.forEach((t, i) => {
         const btn = document.createElement('button');
-        btn.textContent = t;
-        btn.dataset.ticker = t;
+        btn.textContent = t; btn.dataset.ticker = t;
         if (i === 0) btn.classList.add('active');
         btn.onclick = () => selectTicker(t);
         tickerBar.appendChild(btn);
@@ -128,12 +203,7 @@
         const btn = document.createElement('button');
         btn.textContent = tf.label;
         if (i === 0) btn.classList.add('active');
-        btn.onclick = () => {
-            tfBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentTF = tf;
-            loadData();
-        };
+        btn.onclick = () => { tfBar.querySelectorAll('button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentTF = tf; loadData(); };
         tfBar.appendChild(btn);
     });
 
@@ -142,171 +212,302 @@
         tickerBar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.ticker === t));
         document.querySelectorAll('.wl-item').forEach(el => el.classList.toggle('active', el.dataset.ticker === t));
         loadData();
+        if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook();
     }
 
-    // ---- Chart (v5 with native panes) ----
+    // Drawing tool buttons
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.onclick = () => {
+            const tool = btn.dataset.tool;
+            if (tool === 'hline') { const p = parseFloat(prompt('Цена уровня:')); if (!isNaN(p)) { saveDrawing({ type: 'hline', price: p }); renderDrawings(); } }
+            else if (tool === 'alert') {
+                const p = parseFloat(prompt('Цена алерта:')); if (isNaN(p)) return;
+                const last = lastData.length ? lastData[lastData.length-1].close : p;
+                addAlert(currentTicker, p, p >= last ? 'above' : 'below');
+                requestPermission(); renderAlerts(); renderAlertLines();
+            }
+            else if (tool === 'fib') {
+                const hi = parseFloat(prompt('Максимум (high):')); const lo = parseFloat(prompt('Минимум (low):'));
+                if (!isNaN(hi) && !isNaN(lo)) { saveDrawing({ type: 'fib', high: hi, low: lo }); renderDrawings(); }
+            }
+            else if (tool === 'trend') {
+                drawMode = drawMode === 'trend' ? null : 'trend'; pendingPoint = null;
+                document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b === btn && drawMode));
+                setStatus(drawMode ? 'Трендлиния: кликните первую точку' : '');
+            }
+        };
+    });
+    document.getElementById('clear-draw').onclick = () => {
+        const all = loadDrawings().filter(d => d.ticker !== currentTicker);
+        localStorage.setItem(DRAW_KEY, JSON.stringify(all));
+        renderDrawings();
+    };
 
+    // Toggles
+    document.getElementById('sig-toggle').onchange = () => renderSignalMarkers();
+    document.getElementById('sr-toggle').onchange = () => renderSR();
+
+    // Bottom panel tabs
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+        tab.onclick = () => {
+            document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            ['advisor','signals','alerts'].forEach(name => {
+                document.getElementById(name + '-body').style.display = tab.dataset.tab === name ? 'block' : 'none';
+            });
+        };
+    });
+    document.getElementById('panel-collapse').onclick = () => {
+        const p = document.getElementById('bottom-panel');
+        p.classList.toggle('collapsed');
+        document.getElementById('panel-collapse').innerHTML = p.classList.contains('collapsed') ? '&#9650;' : '&#9660;';
+        setTimeout(resizeChart, 250);
+    };
+
+    // ---- Chart ----
     function initChart() {
         const container = document.getElementById('chart-container');
-
         chart = createChart(container, {
-            width: container.clientWidth,
-            height: container.clientHeight,
-            layout: {
-                background: { type: 'solid', color: '#131722' },
-                textColor: '#d1d4dc',
-                panes: {
-                    separatorColor: '#2a2e39',
-                    enableResize: true,
-                },
-            },
-            grid: {
-                vertLines: { color: '#1e222d' },
-                horzLines: { color: '#1e222d' },
-            },
-            crosshair: {
-                mode: 0,
-                vertLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
-                horzLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
-            },
+            width: container.clientWidth, height: container.clientHeight,
+            localization: { locale: 'ru-RU' },
+            layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', panes: { separatorColor: '#2a2e39', enableResize: true } },
+            grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+            crosshair: { mode: 0, vertLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' }, horzLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' } },
             rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.05, bottom: 0.15 } },
             timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false },
         });
 
-        // Pane 0: Price chart
-        candleSeries = chart.addSeries(CandlestickSeries, {
-            upColor: '#26a69a', downColor: '#ef5350',
-            borderUpColor: '#26a69a', borderDownColor: '#ef5350',
-            wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-        }, 0);
-
-        volumeSeries = chart.addSeries(HistogramSeries, {
-            priceFormat: { type: 'volume' },
-            priceScaleId: 'vol',
-        }, 0);
+        candleSeries = chart.addSeries(CandlestickSeries, { upColor: '#26a69a', downColor: '#ef5350', borderUpColor: '#26a69a', borderDownColor: '#ef5350', wickUpColor: '#26a69a', wickDownColor: '#ef5350' }, 0);
+        volumeSeries = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'vol' }, 0);
         chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-
         sma20Series = chart.addSeries(LineSeries, { color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, 0);
         sma50Series = chart.addSeries(LineSeries, { color: '#2196f3', lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, 0);
         bb1Series = chart.addSeries(LineSeries, { color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false }, 0);
         bb2Series = chart.addSeries(LineSeries, { color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false }, 0);
 
-        // Pane 1: RSI
-        rsiSeries = chart.addSeries(LineSeries, {
-            color: '#7c4dff', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false,
-            autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }),
-        }, 1);
+        rsiSeries = chart.addSeries(LineSeries, { color: '#7c4dff', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) }, 1);
         rsiSeries.createPriceLine({ price: 70, color: '#ef5350', lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
         rsiSeries.createPriceLine({ price: 30, color: '#26a69a', lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
         rsiSeries.createPriceLine({ price: 50, color: '#363a45', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 
-        // Pane 2: MACD
         macdLineSrs = chart.addSeries(LineSeries, { color: '#2196f3', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }, 2);
         macdSignalSrs = chart.addSeries(LineSeries, { color: '#ff9800', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }, 2);
         macdHistSrs = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, 2);
         macdLineSrs.createPriceLine({ price: 0, color: '#363a45', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 
-        // Crosshair → info bar
-        chart.subscribeCrosshairMove(param => {
-            if (!param.time) return;
-            const d = dataLookup.get(timeKey(param.time));
-            if (d) updateInfo(d);
+        chart.subscribeCrosshairMove(param => { if (!param.time) return; const d = dataLookup.get(timeKey(param.time)); if (d) updateInfo(d); });
+        chart.subscribeClick(param => {
+            if (drawMode !== 'trend' || !param.time || !param.point) return;
+            const price = candleSeries.coordinateToPrice(param.point.y);
+            if (price == null) return;
+            if (!pendingPoint) { pendingPoint = { time: param.time, price }; setStatus('Трендлиния: кликните вторую точку'); }
+            else {
+                saveDrawing({ type: 'trend', p1: pendingPoint, p2: { time: param.time, price } });
+                pendingPoint = null; drawMode = null;
+                document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+                setStatus(''); renderDrawings();
+            }
         });
-
         window.addEventListener('resize', resizeChart);
     }
 
-    function resizeChart() {
-        const el = document.getElementById('chart-container');
-        chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
-    }
+    function resizeChart() { const el = document.getElementById('chart-container'); chart.applyOptions({ width: el.clientWidth, height: el.clientHeight }); }
+    function setStatus(t) { if (t) document.getElementById('status').textContent = t; }
 
     // ---- Helpers ----
-
-    function timeKey(t) {
-        if (typeof t === 'string') return t;
-        if (typeof t === 'number') return t;
-        if (t && t.year !== undefined) return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
-        return '';
-    }
-
     function formatVol(v) {
         if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
         if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
         if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
         return v;
     }
-
     function updateInfo(d) {
         document.getElementById('info-o').textContent = d.open.toFixed(2);
         document.getElementById('info-h').textContent = d.high.toFixed(2);
         document.getElementById('info-l').textContent = d.low.toFixed(2);
         document.getElementById('info-c').textContent = d.close.toFixed(2);
         document.getElementById('info-v').textContent = formatVol(d.volume);
-        const rsiEl = document.getElementById('info-rsi');
-        rsiEl.textContent = d.rsi !== undefined ? d.rsi.toFixed(1) : '—';
-        rsiEl.className = 'val' + (d.rsi > 70 ? ' red' : d.rsi < 30 ? ' green' : '');
-        const macdEl = document.getElementById('info-macd');
-        macdEl.textContent = d.macd !== undefined ? d.macd.toFixed(2) : '—';
-        macdEl.className = 'val' + (d.macdHist > 0 ? ' green' : d.macdHist < 0 ? ' red' : '');
+        const r = document.getElementById('info-rsi');
+        r.textContent = d.rsi !== undefined ? d.rsi.toFixed(1) : '—';
+        r.className = 'val' + (d.rsi > 70 ? ' red' : d.rsi < 30 ? ' green' : '');
+        const m = document.getElementById('info-macd');
+        m.textContent = d.macd !== undefined ? d.macd.toFixed(2) : '—';
+        m.className = 'val' + (d.macdHist > 0 ? ' green' : d.macdHist < 0 ? ' red' : '');
+    }
+
+    // ---- Drawings persistence ----
+    function loadDrawings() { try { return JSON.parse(localStorage.getItem(DRAW_KEY) || '[]'); } catch { return []; } }
+    function saveDrawing(d) { const all = loadDrawings(); all.push({ ...d, ticker: currentTicker }); localStorage.setItem(DRAW_KEY, JSON.stringify(all)); }
+
+    function renderDrawings() {
+        drawPriceLines.forEach(l => candleSeries.removePriceLine(l)); drawPriceLines = [];
+        drawSeries.forEach(s => chart.removeSeries(s)); drawSeries = [];
+        const mine = loadDrawings().filter(d => d.ticker === currentTicker);
+        for (const d of mine) {
+            if (d.type === 'hline') drawPriceLines.push(candleSeries.createPriceLine({ price: d.price, color: '#d1d4dc', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: 'Уровень' }));
+            else if (d.type === 'fib') {
+                const diff = d.high - d.low;
+                [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1].forEach(lv => {
+                    drawPriceLines.push(candleSeries.createPriceLine({ price: d.high - diff * lv, color: '#FFD700', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: (lv * 100).toFixed(1) + '%' }));
+                });
+            }
+            else if (d.type === 'trend') {
+                const s = chart.addSeries(LineSeries, { color: '#ffffff', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, 0);
+                const pts = [{ time: d.p1.time, value: d.p1.price }, { time: d.p2.time, value: d.p2.price }].sort((a, b) => (a.time > b.time ? 1 : -1));
+                s.setData(pts); drawSeries.push(s);
+            }
+        }
+    }
+
+    // ---- Support / Resistance ----
+    function renderSR() {
+        srLines.forEach(l => candleSeries.removePriceLine(l)); srLines = [];
+        if (!document.getElementById('sr-toggle').checked || !lastIndicators.sr) return;
+        for (const lv of lastIndicators.sr) {
+            srLines.push(candleSeries.createPriceLine({
+                price: lv.price, color: lv.type === 'support' ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)',
+                lineWidth: 1, lineStyle: 3, axisLabelVisible: true, title: (lv.type === 'support' ? 'S' : 'R') + ' ' + lv.touches,
+            }));
+        }
+    }
+
+    // ---- Signal markers ----
+    function renderSignalMarkers() {
+        if (!lastIndicators.signals) return;
+        const on = document.getElementById('sig-toggle').checked;
+        const markers = on ? lastIndicators.signals.map(s => ({
+            time: s.time, position: s.type === 'BUY' ? 'belowBar' : 'aboveBar',
+            color: s.type === 'BUY' ? '#26a69a' : '#ef5350', shape: s.type === 'BUY' ? 'arrowUp' : 'arrowDown', text: s.type,
+        })) : [];
+        try {
+            if (typeof candleSeries.setMarkers === 'function') candleSeries.setMarkers(markers);
+            else if (LightweightCharts.createSeriesMarkers) {
+                if (!window._markerPrimitive) window._markerPrimitive = LightweightCharts.createSeriesMarkers(candleSeries, markers);
+                else window._markerPrimitive.setMarkers(markers);
+            }
+        } catch (e) { /* markers unsupported */ }
+    }
+
+    // ---- Alert lines ----
+    function renderAlertLines() {
+        alertLines.forEach(l => candleSeries.removePriceLine(l)); alertLines = [];
+        loadAlerts().filter(a => a.ticker === currentTicker && a.active).forEach(a => {
+            alertLines.push(candleSeries.createPriceLine({ price: a.price, color: '#ffeb3b', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: 'Алерт' }));
+        });
+    }
+
+    // ---- Advisor ----
+    function renderAdvisor() {
+        const body = document.getElementById('advisor-body');
+        if (!lastData.length) { body.innerHTML = '<span class="muted">Нет данных</span>'; return; }
+        const { sma20, sma50, rsi, macdData, sr, patterns, signals, atr } = lastIndicators;
+        const last = lastData[lastData.length - 1];
+        const lines = [];
+        const cur20 = sma20.length ? sma20[sma20.length-1].value : null;
+        const cur50 = sma50.length ? sma50[sma50.length-1].value : null;
+        if (cur20 && cur50) lines.push((cur20 > cur50 ? '▲ Тренд восходящий' : '▼ Тренд нисходящий') + ` (SMA20 ${cur20.toFixed(1)} / SMA50 ${cur50.toFixed(1)})`);
+        const curRsi = rsi.length ? rsi[rsi.length-1].value : null;
+        if (curRsi != null) lines.push(curRsi > 70 ? `RSI перекуплен (${curRsi.toFixed(1)}) — риск коррекции вниз` : curRsi < 30 ? `RSI перепродан (${curRsi.toFixed(1)}) — возможен отскок` : `RSI нейтрально (${curRsi.toFixed(1)})`);
+        if (macdData.macd.length) {
+            const lm = macdData.macd[macdData.macd.length-1].value, ls = macdData.signal[macdData.signal.length-1].value;
+            lines.push(lm > ls ? 'MACD выше сигнальной — бычий импульс' : 'MACD ниже сигнальной — медвежий импульс');
+        }
+        const recentP = patterns.filter(p => p.idx >= lastData.length - 3);
+        if (recentP.length) recentP.forEach(p => lines.push(`${p.dir === 'bull' ? '▲' : p.dir === 'bear' ? '▼' : '◆'} Паттерн: ${p.name} (${p.conf}%)`));
+
+        let html = lines.map(l => `<div class="adv-line">${l}</div>`).join('');
+
+        const lastSig = signals.length ? signals[signals.length - 1] : null;
+        let rec = 'neutral', recText = 'НЕЙТРАЛЬНО', entry = last.close, stop = null, target = null;
+        if (lastSig && signals[signals.length-1].time === last.time) {
+            rec = lastSig.type === 'BUY' ? 'buy' : 'sell';
+            recText = lastSig.type === 'BUY' ? 'ПОКУПКА' : 'ПРОДАЖА';
+            const a = atr.length ? atr[atr.length-1].value : last.close * 0.02;
+            if (lastSig.type === 'BUY') { stop = entry - a * 1.5; target = entry + a * 3; }
+            else { stop = entry + a * 1.5; target = entry - a * 3; }
+        }
+        html += `<div class="adv-rec ${rec}"><b class="${rec === 'buy' ? 'green' : rec === 'sell' ? 'red' : 'muted'}">Рекомендация: ${recText}</b>`;
+        if (stop != null) {
+            const rr = Math.abs((target - entry) / (stop - entry));
+            html += `<div class="adv-line">Вход ${entry.toFixed(2)} · Стоп ${stop.toFixed(2)} · Цель ${target.toFixed(2)} · R/R 1:${rr.toFixed(1)}</div>`;
+            if (lastSig.reasons) html += `<div class="adv-line muted">${lastSig.reasons.join(' · ')}</div>`;
+        } else {
+            html += `<div class="adv-line muted">Чёткого сигнала нет. Цена ${last.close.toFixed(2)}. Ждите подтверждения.</div>`;
+        }
+        html += '</div>';
+        body.innerHTML = html;
+    }
+
+    function renderSignalsTable() {
+        const body = document.getElementById('signals-body');
+        const sigs = (lastIndicators.signals || []).slice(-20).reverse();
+        if (!sigs.length) { body.innerHTML = '<span class="muted">Сигналов нет</span>'; return; }
+        let html = '<table class="data"><thead><tr><th>Время</th><th>Тип</th><th>Сила</th><th>Цена</th><th>Причины</th></tr></thead><tbody>';
+        for (const s of sigs) {
+            html += `<tr><td>${timeKey(s.time)}</td><td class="${s.type === 'BUY' ? 'green' : 'red'}">${s.type}</td><td>${s.score}/4</td><td>${s.price.toFixed(2)}</td><td class="muted">${s.reasons.join(', ')}</td></tr>`;
+        }
+        body.innerHTML = html + '</tbody></table>';
+    }
+
+    function renderAlerts() {
+        const body = document.getElementById('alerts-body');
+        const alerts = loadAlerts();
+        if (!alerts.length) { body.innerHTML = '<span class="muted">Алертов нет. Нажмите «Алерт» на панели.</span>'; return; }
+        let html = '<table class="data"><thead><tr><th>Тикер</th><th>Условие</th><th>Цена</th><th>Статус</th><th></th></tr></thead><tbody>';
+        for (const a of alerts) {
+            html += `<tr><td>${a.ticker}</td><td>${a.direction === 'above' ? 'выше' : 'ниже'}</td><td>${a.price.toFixed(2)}</td><td class="${a.active ? '' : 'muted'}">${a.active ? 'активен' : 'сработал'}</td><td><button class="del-btn" data-id="${a.id}">✕</button></td></tr>`;
+        }
+        body.innerHTML = html + '</tbody></table>';
+        body.querySelectorAll('.del-btn').forEach(b => b.onclick = () => { removeAlert(Number(b.dataset.id)); renderAlerts(); renderAlertLines(); });
     }
 
     // ---- Load Data ----
-
     async function loadData() {
         const status = document.getElementById('status');
         status.textContent = `Загрузка ${currentTicker}...`;
         document.getElementById('info-ticker').textContent = currentTicker;
-
         try {
             const data = await fetchCandles(currentTicker, currentTF.interval, currentTF.days);
             if (!data.length) { status.textContent = 'Нет данных'; return; }
+            lastData = data;
 
-            const sma20 = calcSMA(data, 20);
-            const sma50 = calcSMA(data, 50);
-            const bb = calcBB(data, 20, 2);
-            const rsi = calcRSI(data, 14);
-            const macdData = calcMACD(data, 12, 26, 9);
+            const sma20 = calcSMA(data, 20), sma50 = calcSMA(data, 50);
+            const bb = calcBB(data, 20, 2), rsi = calcRSI(data, 14);
+            const macdData = calcMACD(data, 12, 26, 9), atr = calcATR(data, 14);
+            const patterns = detectPatterns(data), sr = findSR(data);
+            const signals = generateSignals(data, rsi, macdData, sma20, sma50, bb);
+            lastIndicators = { sma20, sma50, bb, rsi, macdData, atr, patterns, sr, signals };
 
             dataLookup = new Map();
             for (const d of data) dataLookup.set(timeKey(d.time), { ...d });
             for (const r of rsi) { const e = dataLookup.get(timeKey(r.time)); if (e) e.rsi = r.value; }
             for (const m of macdData.macd) { const e = dataLookup.get(timeKey(m.time)); if (e) e.macd = m.value; }
-            for (const s of macdData.signal) { const e = dataLookup.get(timeKey(s.time)); if (e) e.macdSignal = s.value; }
             for (const h of macdData.histogram) { const e = dataLookup.get(timeKey(h.time)); if (e) e.macdHist = h.value; }
 
             candleSeries.setData(data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close })));
-            volumeSeries.setData(data.map(d => ({
-                time: d.time, value: d.volume,
-                color: d.close >= d.open ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)',
-            })));
-            sma20Series.setData(sma20);
-            sma50Series.setData(sma50);
-            bb1Series.setData(bb.upper);
-            bb2Series.setData(bb.lower);
+            volumeSeries.setData(data.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)' })));
+            sma20Series.setData(sma20); sma50Series.setData(sma50);
+            bb1Series.setData(bb.upper); bb2Series.setData(bb.lower);
             rsiSeries.setData(rsi);
-            macdLineSrs.setData(macdData.macd);
-            macdSignalSrs.setData(macdData.signal);
-            macdHistSrs.setData(macdData.histogram);
+            macdLineSrs.setData(macdData.macd); macdSignalSrs.setData(macdData.signal); macdHistSrs.setData(macdData.histogram);
 
-            const last = data[data.length - 1];
-            const prev = data.length > 1 ? data[data.length - 2] : last;
+            const last = data[data.length - 1], prev = data.length > 1 ? data[data.length - 2] : last;
             const chg = ((last.close - prev.close) / prev.close * 100).toFixed(2);
-            document.getElementById('info-price').textContent = last.close.toFixed(2) + ' ₽';
-            document.getElementById('info-price').className = 'price ' + (chg >= 0 ? 'green' : 'red');
-            document.getElementById('info-change').textContent = (chg >= 0 ? '+' : '') + chg + '%';
-            document.getElementById('info-change').className = 'change ' + (chg >= 0 ? 'green' : 'red');
+            const pe = document.getElementById('info-price'), ce = document.getElementById('info-change');
+            pe.textContent = last.close.toFixed(2) + ' ₽'; pe.className = 'price ' + (chg >= 0 ? 'green' : 'red');
+            ce.textContent = (chg >= 0 ? '+' : '') + chg + '%'; ce.className = 'change ' + (chg >= 0 ? 'green' : 'red');
             updateInfo(dataLookup.get(timeKey(last.time)) || last);
 
+            renderSR(); renderSignalMarkers(); renderDrawings(); renderAlertLines();
+            renderAdvisor(); renderSignalsTable(); renderAlerts();
+            checkAlerts(currentTicker, last.close);
+
             chart.timeScale().fitContent();
-            status.textContent = `${currentTicker} · ${data.length} свечей · ${new Date().toLocaleTimeString('ru')}`;
-        } catch (e) {
-            status.textContent = 'Ошибка: ' + e.message;
-        }
+            status.textContent = `${currentTicker} · ${data.length} свечей · ${signals.length} сигналов · ${new Date().toLocaleTimeString('ru')}`;
+        } catch (e) { status.textContent = 'Ошибка: ' + e.message; }
     }
 
     // ---- Watchlist ----
-
     async function refreshWatchlist() {
         const body = document.getElementById('wl-body');
         try {
@@ -317,35 +518,51 @@
                 el.className = 'wl-item' + (p.ticker === currentTicker ? ' active' : '');
                 el.dataset.ticker = p.ticker;
                 const chg = p.change != null ? parseFloat(p.change) : null;
-                const chgColor = chg != null ? (chg >= 0 ? '#26a69a' : '#ef5350') : '#787b86';
-                const chgStr = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
-                el.innerHTML = `
-                    <div><div class="wl-ticker">${p.ticker}</div><div class="wl-name">${p.shortname}</div></div>
-                    <div><div class="wl-price">${p.last.toFixed(2)}</div><div class="wl-change" style="color:${chgColor}">${chgStr}</div></div>`;
+                const col = chg != null ? (chg >= 0 ? '#26a69a' : '#ef5350') : '#787b86';
+                const cs = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
+                el.innerHTML = `<div><div class="wl-ticker">${p.ticker}</div><div class="wl-name">${p.shortname}</div></div><div><div class="wl-price">${p.last.toFixed(2)}</div><div class="wl-change" style="color:${col}">${cs}</div></div>`;
                 el.onclick = () => selectTicker(p.ticker);
                 body.appendChild(el);
+                if (p.ticker === currentTicker) checkAlerts(currentTicker, p.last);
             }
         } catch {
             if (!body.children.length) {
-                body.innerHTML = '';
                 TICKERS.forEach(t => {
                     const el = document.createElement('div');
-                    el.className = 'wl-item' + (t === currentTicker ? ' active' : '');
-                    el.dataset.ticker = t;
+                    el.className = 'wl-item' + (t === currentTicker ? ' active' : ''); el.dataset.ticker = t;
                     el.innerHTML = `<div><div class="wl-ticker">${t}</div></div><div><div class="wl-price">—</div></div>`;
-                    el.onclick = () => selectTicker(t);
-                    body.appendChild(el);
+                    el.onclick = () => selectTicker(t); body.appendChild(el);
                 });
             }
         }
     }
 
-    // ---- Init ----
+    // ---- Order book ----
+    async function refreshOrderBook() {
+        const body = document.getElementById('ob-body');
+        try {
+            const { bids, asks } = await fetchOrderBook(currentTicker);
+            if (!bids.length && !asks.length) { body.innerHTML = '<div class="ob-spread">Стакан пуст (вне торгов)</div>'; return; }
+            const maxQ = Math.max(...bids.map(b => b.quantity), ...asks.map(a => a.quantity), 1);
+            let html = '';
+            asks.slice().reverse().forEach(a => {
+                html += `<div class="ob-row ask"><div class="ob-bar" style="width:${(a.quantity/maxQ*100).toFixed(0)}%"></div><span class="ob-price">${a.price.toFixed(2)}</span><span class="ob-vol">${a.quantity}</span></div>`;
+            });
+            const spread = asks.length && bids.length ? (asks[0].price - bids[0].price).toFixed(2) : '—';
+            html += `<div class="ob-spread">спред ${spread}</div>`;
+            bids.forEach(b => {
+                html += `<div class="ob-row bid"><div class="ob-bar" style="width:${(b.quantity/maxQ*100).toFixed(0)}%"></div><span class="ob-price">${b.price.toFixed(2)}</span><span class="ob-vol">${b.quantity}</span></div>`;
+            });
+            body.innerHTML = html;
+        } catch { body.innerHTML = '<div class="ob-spread">Стакан недоступен</div>'; }
+    }
 
+    // ---- Init ----
     initChart();
     loadData();
     refreshWatchlist();
     setInterval(refreshWatchlist, 60000);
+    setInterval(() => { if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook(); }, 30000);
     </script>
 </body>
 </html>
