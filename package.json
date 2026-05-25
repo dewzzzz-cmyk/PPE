@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "lightweight-charts": "^5.2.0"
+    "echarts": "^6.1.0",
+    "lightweight-charts": "^5.2.0",
+    "split.js": "^1.6.5",
+    "tabulator-tables": "^6.4.0"
   }
 }
