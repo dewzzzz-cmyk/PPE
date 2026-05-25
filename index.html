@@ -4,70 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOEX Trading Terminal</title>
-    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #d1d4dc; overflow: hidden; }
+        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #d1d4dc; height: 100vh; overflow: hidden; }
 
-        .toolbar {
-            display: flex; align-items: center; gap: 12px;
-            padding: 6px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39;
-        }
+        .app { display: flex; height: 100vh; }
+
+        .watchlist { width: 220px; background: #1a1d29; border-right: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
+        .watchlist.collapsed { width: 0; border-right: none; }
+        .wl-header { padding: 8px 12px; border-bottom: 1px solid #2a2e39; font-size: 12px; font-weight: 600; color: #787b86; }
+        .wl-body { flex: 1; overflow-y: auto; }
+        .wl-body::-webkit-scrollbar { width: 4px; }
+        .wl-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
+        .wl-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(42,46,57,0.3); transition: background 0.15s; }
+        .wl-item:hover { background: rgba(42,46,57,0.5); }
+        .wl-item.active { background: rgba(41,98,255,0.12); border-left: 3px solid #2962ff; padding-left: 9px; }
+        .wl-ticker { font-size: 13px; font-weight: 600; }
+        .wl-name { font-size: 10px; color: #787b86; margin-top: 1px; }
+        .wl-price { font-size: 13px; text-align: right; }
+        .wl-change { font-size: 11px; font-weight: 600; text-align: right; }
+
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; flex-shrink: 0; }
         .toolbar h1 { font-size: 14px; font-weight: 600; color: #787b86; white-space: nowrap; }
+        .wl-btn { background: none; border: 1px solid #363a45; color: #787b86; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 14px; line-height: 1; }
+        .wl-btn:hover { color: #d1d4dc; border-color: #787b86; }
         .tickers { display: flex; gap: 3px; flex-wrap: wrap; }
-        .tickers button {
-            background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45;
-            padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
-        }
+        .tickers button { background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .tickers button:hover { background: #363a45; }
         .tickers button.active { background: #2962ff; border-color: #2962ff; color: #fff; }
-
         .timeframes { display: flex; gap: 2px; margin-left: 8px; }
-        .timeframes button {
-            background: transparent; color: #787b86; border: none;
-            padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;
-        }
+        .timeframes button { background: transparent; color: #787b86; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
         .timeframes button:hover { color: #d1d4dc; }
         .timeframes button.active { color: #2962ff; background: rgba(41,98,255,0.1); }
 
-        .info-bar {
-            display: flex; align-items: center; gap: 16px;
-            padding: 4px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; font-size: 12px;
-        }
-        .info-bar .ticker-name { font-size: 16px; font-weight: 600; color: #d1d4dc; }
-        .info-bar .price { font-size: 15px; font-weight: 600; }
+        .info-bar { display: flex; align-items: center; gap: 12px; padding: 3px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
+        .info-bar .ticker-name { font-size: 15px; font-weight: 600; }
+        .info-bar .price { font-size: 14px; font-weight: 600; }
         .info-bar .change { font-size: 12px; font-weight: 500; }
         .info-bar .label { color: #787b86; }
-        .info-bar .val { color: #d1d4dc; margin-left: 4px; }
+        .info-bar .val { color: #d1d4dc; margin-left: 3px; }
+        .info-bar .sep { color: #363a45; margin: 0 2px; }
         .green { color: #26a69a; }
         .red { color: #ef5350; }
 
-        #chart-container { width: 100%; height: calc(100vh - 76px); }
-        #volume-container { width: 100%; height: 80px; }
+        #chart-container { flex: 1; min-height: 0; }
 
-        .status { position: fixed; bottom: 8px; right: 12px; font-size: 11px; color: #787b86; }
+        .status-bar { padding: 3px 12px; font-size: 11px; color: #787b86; background: #1e222d; border-top: 1px solid #2a2e39; flex-shrink: 0; }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <h1>MOEX</h1>
-        <div class="tickers" id="ticker-bar"></div>
-        <div class="timeframes" id="tf-bar"></div>
+    <div class="app">
+        <aside class="watchlist" id="watchlist">
+            <div class="wl-header">Вотчлист</div>
+            <div class="wl-body" id="wl-body"></div>
+        </aside>
+        <div class="main">
+            <div class="toolbar">
+                <button class="wl-btn" id="wl-toggle" title="Вотчлист">&#9776;</button>
+                <h1>MOEX</h1>
+                <div class="tickers" id="ticker-bar"></div>
+                <div class="timeframes" id="tf-bar"></div>
+            </div>
+            <div class="info-bar">
+                <span class="ticker-name" id="info-ticker">SBER</span>
+                <span class="price" id="info-price">&mdash;</span>
+                <span class="change" id="info-change">&mdash;</span>
+                <span><span class="label">O</span><span class="val" id="info-o">&mdash;</span></span>
+                <span><span class="label">H</span><span class="val" id="info-h">&mdash;</span></span>
+                <span><span class="label">L</span><span class="val" id="info-l">&mdash;</span></span>
+                <span><span class="label">C</span><span class="val" id="info-c">&mdash;</span></span>
+                <span><span class="label">Vol</span><span class="val" id="info-v">&mdash;</span></span>
+                <span class="sep">|</span>
+                <span><span class="label">RSI</span><span class="val" id="info-rsi">&mdash;</span></span>
+                <span><span class="label">MACD</span><span class="val" id="info-macd">&mdash;</span></span>
+            </div>
+            <div id="chart-container"></div>
+            <div class="status-bar" id="status">Загрузка...</div>
+        </div>
     </div>
-    <div class="info-bar" id="info-bar">
-        <span class="ticker-name" id="info-ticker">SBER</span>
-        <span class="price" id="info-price">—</span>
-        <span class="change" id="info-change">—</span>
-        <span><span class="label">O</span><span class="val" id="info-o">—</span></span>
-        <span><span class="label">H</span><span class="val" id="info-h">—</span></span>
-        <span><span class="label">L</span><span class="val" id="info-l">—</span></span>
-        <span><span class="label">C</span><span class="val" id="info-c">—</span></span>
-        <span><span class="label">Vol</span><span class="val" id="info-v">—</span></span>
-    </div>
-    <div id="chart-container"></div>
-    <div class="status" id="status">Загрузка...</div>
 
-    <script>
+    <script type="module">
+    import { calcSMA, calcBB, calcRSI, calcMACD } from './js/indicators.js';
+    import { fetchCandles, fetchPrices } from './js/moex.js';
+
+    const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = LightweightCharts;
+
     const TICKERS = ['SBER','GAZP','LKOH','YNDX','GMKN','ROSN','NVTK','MTSS','MGNT','PLZL'];
     const TIMEFRAMES = [
         { label: '1ч', interval: 60, days: 90 },
@@ -76,22 +100,26 @@
         { label: '1мес', interval: 31, days: 1825 },
     ];
 
-    let currentTicker = 'SBER';
-    let currentTF = TIMEFRAMES[0];
-    let chart, candleSeries, volumeSeries, sma20Series, sma50Series, bb1Series, bb2Series;
+    let currentTicker = 'SBER', currentTF = TIMEFRAMES[0];
+    let dataLookup = new Map();
+    let chart;
+    let candleSeries, volumeSeries, sma20Series, sma50Series, bb1Series, bb2Series;
+    let rsiSeries, macdLineSrs, macdSignalSrs, macdHistSrs;
 
-    // --- UI setup ---
+    // ---- UI ----
+
+    document.getElementById('wl-toggle').onclick = () => {
+        document.getElementById('watchlist').classList.toggle('collapsed');
+        setTimeout(resizeChart, 250);
+    };
+
     const tickerBar = document.getElementById('ticker-bar');
     TICKERS.forEach((t, i) => {
         const btn = document.createElement('button');
         btn.textContent = t;
+        btn.dataset.ticker = t;
         if (i === 0) btn.classList.add('active');
-        btn.onclick = () => {
-            tickerBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentTicker = t;
-            loadData();
-        };
+        btn.onclick = () => selectTicker(t);
         tickerBar.appendChild(btn);
     });
 
@@ -109,192 +137,215 @@
         tfBar.appendChild(btn);
     });
 
-    // --- Chart setup ---
-    function createChart() {
-        const container = document.getElementById('chart-container');
-        container.innerHTML = '';
+    function selectTicker(t) {
+        currentTicker = t;
+        tickerBar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.ticker === t));
+        document.querySelectorAll('.wl-item').forEach(el => el.classList.toggle('active', el.dataset.ticker === t));
+        loadData();
+    }
 
-        chart = LightweightCharts.createChart(container, {
+    // ---- Chart (v5 with native panes) ----
+
+    function initChart() {
+        const container = document.getElementById('chart-container');
+
+        chart = createChart(container, {
             width: container.clientWidth,
             height: container.clientHeight,
             layout: {
                 background: { type: 'solid', color: '#131722' },
                 textColor: '#d1d4dc',
+                panes: {
+                    separatorColor: '#2a2e39',
+                    enableResize: true,
+                },
             },
             grid: {
                 vertLines: { color: '#1e222d' },
                 horzLines: { color: '#1e222d' },
             },
             crosshair: {
-                mode: LightweightCharts.CrosshairMode.Normal,
+                mode: 0,
                 vertLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
                 horzLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
             },
-            rightPriceScale: {
-                borderColor: '#2a2e39',
-                scaleMargins: { top: 0.1, bottom: 0.25 },
-            },
-            timeScale: {
-                borderColor: '#2a2e39',
-                timeVisible: true,
-                secondsVisible: false,
-            },
+            rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.05, bottom: 0.15 } },
+            timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false },
         });
 
-        candleSeries = chart.addCandlestickSeries({
+        // Pane 0: Price chart
+        candleSeries = chart.addSeries(CandlestickSeries, {
             upColor: '#26a69a', downColor: '#ef5350',
             borderUpColor: '#26a69a', borderDownColor: '#ef5350',
             wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-        });
+        }, 0);
 
-        volumeSeries = chart.addHistogramSeries({
+        volumeSeries = chart.addSeries(HistogramSeries, {
             priceFormat: { type: 'volume' },
             priceScaleId: 'vol',
-        });
-        chart.priceScale('vol').applyOptions({
-            scaleMargins: { top: 0.85, bottom: 0 },
-        });
+        }, 0);
+        chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
 
-        sma20Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        sma50Series = chart.addLineSeries({ color: '#2196f3', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        bb1Series = chart.addLineSeries({ color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-        bb2Series = chart.addLineSeries({ color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        sma20Series = chart.addSeries(LineSeries, { color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, 0);
+        sma50Series = chart.addSeries(LineSeries, { color: '#2196f3', lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, 0);
+        bb1Series = chart.addSeries(LineSeries, { color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false }, 0);
+        bb2Series = chart.addSeries(LineSeries, { color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false }, 0);
 
-        // Crosshair move → update info bar
+        // Pane 1: RSI
+        rsiSeries = chart.addSeries(LineSeries, {
+            color: '#7c4dff', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false,
+            autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }),
+        }, 1);
+        rsiSeries.createPriceLine({ price: 70, color: '#ef5350', lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+        rsiSeries.createPriceLine({ price: 30, color: '#26a69a', lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+        rsiSeries.createPriceLine({ price: 50, color: '#363a45', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+
+        // Pane 2: MACD
+        macdLineSrs = chart.addSeries(LineSeries, { color: '#2196f3', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }, 2);
+        macdSignalSrs = chart.addSeries(LineSeries, { color: '#ff9800', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false }, 2);
+        macdHistSrs = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, 2);
+        macdLineSrs.createPriceLine({ price: 0, color: '#363a45', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+
+        // Crosshair → info bar
         chart.subscribeCrosshairMove(param => {
-            if (!param || !param.time) return;
-            const candle = param.seriesData.get(candleSeries);
-            const vol = param.seriesData.get(volumeSeries);
-            if (candle) {
-                document.getElementById('info-o').textContent = candle.open.toFixed(2);
-                document.getElementById('info-h').textContent = candle.high.toFixed(2);
-                document.getElementById('info-l').textContent = candle.low.toFixed(2);
-                document.getElementById('info-c').textContent = candle.close.toFixed(2);
-            }
-            if (vol) {
-                document.getElementById('info-v').textContent = formatVol(vol.value);
-            }
+            if (!param.time) return;
+            const d = dataLookup.get(timeKey(param.time));
+            if (d) updateInfo(d);
         });
 
-        window.addEventListener('resize', () => {
-            chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
-        });
+        window.addEventListener('resize', resizeChart);
     }
 
-    // --- Data fetching from MOEX ISS ---
-    async function fetchMOEX(ticker, interval, days) {
-        const end = new Date().toISOString().slice(0, 10);
-        const start = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-        const base = 'https://iss.moex.com/iss/engines/stock/markets/shares/securities';
-        let allRows = [];
-        let cursor = 0;
-
-        while (true) {
-            const url = `${base}/${ticker}/candles.json?from=${start}&till=${end}&interval=${interval}&start=${cursor}&iss.meta=off`;
-            const resp = await fetch(url);
-            const data = await resp.json();
-            const rows = data.candles.data;
-            if (!rows.length) break;
-            allRows = allRows.concat(rows);
-            cursor += rows.length;
-            if (rows.length < 500) break;
-        }
-
-        return allRows.map(r => ({
-            time: interval === 24 || interval === 7 || interval === 31
-                ? r[6].slice(0, 10)
-                : Math.floor(new Date(r[6]).getTime() / 1000),
-            open: r[0], close: r[1], high: r[2], low: r[3], volume: r[5],
-        }));
+    function resizeChart() {
+        const el = document.getElementById('chart-container');
+        chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
     }
 
-    // --- Indicators ---
-    function calcSMA(data, period) {
-        const result = [];
-        for (let i = period - 1; i < data.length; i++) {
-            let sum = 0;
-            for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
-            result.push({ time: data[i].time, value: sum / period });
-        }
-        return result;
+    // ---- Helpers ----
+
+    function timeKey(t) {
+        if (typeof t === 'string') return t;
+        if (typeof t === 'number') return t;
+        if (t && t.year !== undefined) return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+        return '';
     }
 
-    function calcBB(data, period, mult) {
-        const upper = [], lower = [];
-        for (let i = period - 1; i < data.length; i++) {
-            let sum = 0;
-            for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
-            const mean = sum / period;
-            let sqSum = 0;
-            for (let j = i - period + 1; j <= i; j++) sqSum += (data[j].close - mean) ** 2;
-            const std = Math.sqrt(sqSum / period);
-            upper.push({ time: data[i].time, value: mean + mult * std });
-            lower.push({ time: data[i].time, value: mean - mult * std });
-        }
-        return { upper, lower };
+    function formatVol(v) {
+        if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+        if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+        if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+        return v;
     }
 
-    // --- Load & render ---
+    function updateInfo(d) {
+        document.getElementById('info-o').textContent = d.open.toFixed(2);
+        document.getElementById('info-h').textContent = d.high.toFixed(2);
+        document.getElementById('info-l').textContent = d.low.toFixed(2);
+        document.getElementById('info-c').textContent = d.close.toFixed(2);
+        document.getElementById('info-v').textContent = formatVol(d.volume);
+        const rsiEl = document.getElementById('info-rsi');
+        rsiEl.textContent = d.rsi !== undefined ? d.rsi.toFixed(1) : '—';
+        rsiEl.className = 'val' + (d.rsi > 70 ? ' red' : d.rsi < 30 ? ' green' : '');
+        const macdEl = document.getElementById('info-macd');
+        macdEl.textContent = d.macd !== undefined ? d.macd.toFixed(2) : '—';
+        macdEl.className = 'val' + (d.macdHist > 0 ? ' green' : d.macdHist < 0 ? ' red' : '');
+    }
+
+    // ---- Load Data ----
+
     async function loadData() {
         const status = document.getElementById('status');
         status.textContent = `Загрузка ${currentTicker}...`;
         document.getElementById('info-ticker').textContent = currentTicker;
 
         try {
-            const data = await fetchMOEX(currentTicker, currentTF.interval, currentTF.days);
+            const data = await fetchCandles(currentTicker, currentTF.interval, currentTF.days);
+            if (!data.length) { status.textContent = 'Нет данных'; return; }
 
-            if (!data.length) {
-                status.textContent = 'Нет данных';
-                return;
-            }
-
-            const candles = data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
-            const volumes = data.map(d => ({
-                time: d.time,
-                value: d.volume,
-                color: d.close >= d.open ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)',
-            }));
-
-            candleSeries.setData(candles);
-            volumeSeries.setData(volumes);
-            sma20Series.setData(calcSMA(data, 20));
-            sma50Series.setData(calcSMA(data, 50));
+            const sma20 = calcSMA(data, 20);
+            const sma50 = calcSMA(data, 50);
             const bb = calcBB(data, 20, 2);
+            const rsi = calcRSI(data, 14);
+            const macdData = calcMACD(data, 12, 26, 9);
+
+            dataLookup = new Map();
+            for (const d of data) dataLookup.set(timeKey(d.time), { ...d });
+            for (const r of rsi) { const e = dataLookup.get(timeKey(r.time)); if (e) e.rsi = r.value; }
+            for (const m of macdData.macd) { const e = dataLookup.get(timeKey(m.time)); if (e) e.macd = m.value; }
+            for (const s of macdData.signal) { const e = dataLookup.get(timeKey(s.time)); if (e) e.macdSignal = s.value; }
+            for (const h of macdData.histogram) { const e = dataLookup.get(timeKey(h.time)); if (e) e.macdHist = h.value; }
+
+            candleSeries.setData(data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close })));
+            volumeSeries.setData(data.map(d => ({
+                time: d.time, value: d.volume,
+                color: d.close >= d.open ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)',
+            })));
+            sma20Series.setData(sma20);
+            sma50Series.setData(sma50);
             bb1Series.setData(bb.upper);
             bb2Series.setData(bb.lower);
+            rsiSeries.setData(rsi);
+            macdLineSrs.setData(macdData.macd);
+            macdSignalSrs.setData(macdData.signal);
+            macdHistSrs.setData(macdData.histogram);
 
-            // Update info bar with last candle
             const last = data[data.length - 1];
             const prev = data.length > 1 ? data[data.length - 2] : last;
-            const change = ((last.close - prev.close) / prev.close * 100).toFixed(2);
-            const priceEl = document.getElementById('info-price');
-            const changeEl = document.getElementById('info-change');
-            priceEl.textContent = last.close.toFixed(2) + ' ₽';
-            priceEl.className = 'price ' + (change >= 0 ? 'green' : 'red');
-            changeEl.textContent = (change >= 0 ? '+' : '') + change + '%';
-            changeEl.className = 'change ' + (change >= 0 ? 'green' : 'red');
-            document.getElementById('info-o').textContent = last.open.toFixed(2);
-            document.getElementById('info-h').textContent = last.high.toFixed(2);
-            document.getElementById('info-l').textContent = last.low.toFixed(2);
-            document.getElementById('info-c').textContent = last.close.toFixed(2);
-            document.getElementById('info-v').textContent = formatVol(last.volume);
+            const chg = ((last.close - prev.close) / prev.close * 100).toFixed(2);
+            document.getElementById('info-price').textContent = last.close.toFixed(2) + ' ₽';
+            document.getElementById('info-price').className = 'price ' + (chg >= 0 ? 'green' : 'red');
+            document.getElementById('info-change').textContent = (chg >= 0 ? '+' : '') + chg + '%';
+            document.getElementById('info-change').className = 'change ' + (chg >= 0 ? 'green' : 'red');
+            updateInfo(dataLookup.get(timeKey(last.time)) || last);
 
             chart.timeScale().fitContent();
             status.textContent = `${currentTicker} · ${data.length} свечей · ${new Date().toLocaleTimeString('ru')}`;
         } catch (e) {
-            status.textContent = 'Ошибка загрузки: ' + e.message;
+            status.textContent = 'Ошибка: ' + e.message;
         }
     }
 
-    function formatVol(v) {
-        if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-        if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
-        return v;
+    // ---- Watchlist ----
+
+    async function refreshWatchlist() {
+        const body = document.getElementById('wl-body');
+        try {
+            const prices = await fetchPrices(TICKERS);
+            body.innerHTML = '';
+            for (const p of prices) {
+                const el = document.createElement('div');
+                el.className = 'wl-item' + (p.ticker === currentTicker ? ' active' : '');
+                el.dataset.ticker = p.ticker;
+                const chg = p.change != null ? parseFloat(p.change) : null;
+                const chgColor = chg != null ? (chg >= 0 ? '#26a69a' : '#ef5350') : '#787b86';
+                const chgStr = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
+                el.innerHTML = `
+                    <div><div class="wl-ticker">${p.ticker}</div><div class="wl-name">${p.shortname}</div></div>
+                    <div><div class="wl-price">${p.last.toFixed(2)}</div><div class="wl-change" style="color:${chgColor}">${chgStr}</div></div>`;
+                el.onclick = () => selectTicker(p.ticker);
+                body.appendChild(el);
+            }
+        } catch {
+            if (!body.children.length) {
+                body.innerHTML = '';
+                TICKERS.forEach(t => {
+                    const el = document.createElement('div');
+                    el.className = 'wl-item' + (t === currentTicker ? ' active' : '');
+                    el.dataset.ticker = t;
+                    el.innerHTML = `<div><div class="wl-ticker">${t}</div></div><div><div class="wl-price">—</div></div>`;
+                    el.onclick = () => selectTicker(t);
+                    body.appendChild(el);
+                });
+            }
+        }
     }
 
-    // --- Init ---
-    createChart();
+    // ---- Init ----
+
+    initChart();
     loadData();
+    refreshWatchlist();
+    setInterval(refreshWatchlist, 60000);
     </script>
 </body>
 </html>
