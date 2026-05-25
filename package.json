@@ -2,6 +2,7 @@
   "dependencies": {
     "echarts": "^6.1.0",
     "lightweight-charts": "^5.2.0",
+    "lightweight-charts-drawing": "^0.1.1",
     "split.js": "^1.6.5",
     "tabulator-tables": "^6.4.0"
   }

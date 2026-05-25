@@ -5,185 +5,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOEX Trading Terminal</title>
     <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
-    <script>if(typeof LightweightCharts==='undefined')document.write('<script src="node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js"><\/script>')</script>
+    <script>if(typeof LightweightCharts==='undefined')document.write('<script src="vendor/lightweight-charts.standalone.production.js"><\/script>')</script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-    <script>if(typeof echarts==='undefined')document.write('<script src="node_modules/echarts/dist/echarts.min.js"><\/script>')</script>
+    <script>if(typeof echarts==='undefined')document.write('<script src="vendor/echarts.min.js"><\/script>')</script>
     <script src="https://cdn.jsdelivr.net/npm/split.js@1.6.5/dist/split.min.js"></script>
-    <script>if(typeof Split==='undefined')document.write('<script src="node_modules/split.js/dist/split.min.js"><\/script>')</script>
+    <script>if(typeof Split==='undefined')document.write('<script src="vendor/split.min.js"><\/script>')</script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts-drawing/dist/lightweight-charts-drawing.umd.js"></script>
+    <script>if(typeof LightweightChartsDrawing==='undefined')document.write('<script src="vendor/lightweight-charts-drawing.umd.js"><\/script>')</script>
     <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/css/tabulator_midnight.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="node_modules/tabulator-tables/dist/css/tabulator_midnight.min.css">
+    <link rel="stylesheet" href="vendor/tabulator_midnight.min.css">
     <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6/dist/js/tabulator.min.js"></script>
-    <script>if(typeof Tabulator==='undefined')document.write('<script src="node_modules/tabulator-tables/dist/js/tabulator.min.js"><\/script>')</script>
+    <script>if(typeof Tabulator==='undefined')document.write('<script src="vendor/tabulator.min.js"><\/script>')</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #d1d4dc; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { background: #0a0e17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #d1d4dc; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        .ticker-tape { background: #1a1d29; border-bottom: 1px solid #2a2e39; overflow: hidden; height: 28px; position: relative; flex-shrink: 0; }
+        .ticker-tape { background: linear-gradient(90deg, #0d1117 0%, #131a2a 50%, #0d1117 100%); border-bottom: 1px solid #1e2a3a; overflow: hidden; height: 34px; position: relative; flex-shrink: 0; }
         .tape-track { display: flex; align-items: center; height: 100%; animation: tape-scroll 45s linear infinite; white-space: nowrap; width: max-content; }
         @keyframes tape-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .tape-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; font-size: 11px; border-right: 1px solid #2a2e39; height: 100%; }
-        .tape-ticker { font-weight: 600; color: #d1d4dc; }
-        .tape-price { color: #9598a1; }
-        .tape-change { font-weight: 600; }
+        .tape-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; font-size: 12px; border-right: 1px solid rgba(41,98,255,0.15); height: 100%; transition: background 0.3s; }
+        .tape-item:hover { background: rgba(41,98,255,0.08); }
+        .tape-ticker { font-weight: 700; color: #e1e4ec; letter-spacing: 0.5px; }
+        .tape-price { color: #9598a1; font-weight: 500; }
+        .tape-change { font-weight: 700; font-size: 11px; padding: 1px 6px; border-radius: 3px; }
+        .tape-change.up { background: rgba(38,166,154,0.15); color: #26a69a; }
+        .tape-change.down { background: rgba(239,83,80,0.15); color: #ef5350; }
 
         .app { display: flex; flex: 1; min-height: 0; }
 
-        .watchlist { width: 210px; background: #1a1d29; border-right: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
+        .watchlist { width: 230px; background: linear-gradient(180deg, #111827 0%, #0f1520 100%); border-right: 1px solid #1e2a3a; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s ease; overflow: hidden; }
         .watchlist.collapsed { width: 0; border-right: none; }
-        .side-header { padding: 8px 12px; border-bottom: 1px solid #2a2e39; font-size: 12px; font-weight: 600; color: #787b86; }
+        .side-header { padding: 10px 14px; border-bottom: 1px solid #1e2a3a; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1.2px; background: rgba(15,21,32,0.8); }
         .wl-body { flex: 1; overflow-y: auto; }
-        .wl-body::-webkit-scrollbar, .ob-body::-webkit-scrollbar { width: 4px; }
-        .wl-body::-webkit-scrollbar-thumb, .ob-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
-        .wl-item { display: flex; align-items: center; padding: 6px 10px; cursor: pointer; border-bottom: 1px solid rgba(42,46,57,0.3); gap: 4px; }
-        .wl-item:hover { background: rgba(42,46,57,0.5); }
-        .wl-item.active { background: rgba(41,98,255,0.12); border-left: 3px solid #2962ff; padding-left: 7px; }
+        .wl-body::-webkit-scrollbar, .ob-body::-webkit-scrollbar { width: 3px; }
+        .wl-body::-webkit-scrollbar-thumb, .ob-body::-webkit-scrollbar-thumb { background: #2962ff40; border-radius: 3px; }
+        .wl-item { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(30,42,58,0.4); gap: 6px; transition: all 0.2s ease; position: relative; }
+        .wl-item:hover { background: rgba(41,98,255,0.06); }
+        .wl-item.active { background: linear-gradient(90deg, rgba(41,98,255,0.15) 0%, rgba(41,98,255,0.05) 100%); border-left: 3px solid #2962ff; padding-left: 9px; box-shadow: inset 0 0 20px rgba(41,98,255,0.05); }
         .wl-info { flex: 1; min-width: 0; }
-        .wl-ticker { font-size: 12px; font-weight: 600; }
-        .wl-name { font-size: 10px; color: #787b86; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wl-ticker { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
+        .wl-name { font-size: 10px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .wl-spark { flex-shrink: 0; }
         .wl-right { text-align: right; flex-shrink: 0; }
-        .wl-price { font-size: 12px; }
-        .wl-change { font-size: 10px; font-weight: 600; }
+        .wl-price { font-size: 13px; font-weight: 600; }
+        .wl-change { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; display: inline-block; margin-top: 2px; }
+        .wl-change.up { background: rgba(38,166,154,0.12); color: #26a69a; }
+        .wl-change.down { background: rgba(239,83,80,0.12); color: #ef5350; }
+        .wl-volbar { position: absolute; bottom: 0; left: 0; height: 2px; background: linear-gradient(90deg, #2962ff60, #2962ff00); transition: width 0.5s ease; }
 
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-        .toolbar { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #1e222d; border-bottom: 1px solid #2a2e39; flex-shrink: 0; flex-wrap: wrap; }
-        .toolbar h1 { font-size: 14px; font-weight: 600; color: #787b86; }
-        .icon-btn { background: none; border: 1px solid #363a45; color: #787b86; padding: 2px 7px; border-radius: 3px; cursor: pointer; font-size: 12px; line-height: 1.4; }
-        .icon-btn:hover { color: #d1d4dc; border-color: #787b86; }
-        .icon-btn.active { color: #2962ff; border-color: #2962ff; background: rgba(41,98,255,0.1); }
+        .toolbar { display: flex; align-items: center; gap: 6px; padding: 5px 12px; background: linear-gradient(180deg, #141b2d 0%, #111827 100%); border-bottom: 1px solid #1e2a3a; flex-shrink: 0; flex-wrap: wrap; }
+        .toolbar h1 { font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #2962ff, #00bcd4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 1px; }
+        .icon-btn { background: rgba(41,98,255,0.05); border: 1px solid #1e2a3a; color: #8b95a5; padding: 3px 9px; border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1.4; transition: all 0.2s ease; }
+        .icon-btn:hover { color: #e1e4ec; border-color: #2962ff60; background: rgba(41,98,255,0.1); box-shadow: 0 0 8px rgba(41,98,255,0.15); }
+        .icon-btn.active { color: #2962ff; border-color: #2962ff; background: rgba(41,98,255,0.15); box-shadow: 0 0 12px rgba(41,98,255,0.2); }
         .tickers { display: flex; gap: 3px; flex-wrap: wrap; }
-        .tickers button { background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45; padding: 3px 9px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .tickers button:hover { background: #363a45; }
-        .tickers button.active { background: #2962ff; border-color: #2962ff; color: #fff; }
+        .tickers button { background: #151d2e; color: #d1d4dc; border: 1px solid #1e2a3a; padding: 3px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease; }
+        .tickers button:hover { background: #1e2a3a; border-color: #2962ff40; }
+        .tickers button.active { background: linear-gradient(135deg, #1a3a8f, #2962ff); border-color: #2962ff; color: #fff; box-shadow: 0 2px 12px rgba(41,98,255,0.3); font-weight: 700; }
         .timeframes { display: flex; gap: 2px; }
-        .timeframes button { background: transparent; color: #787b86; border: none; padding: 3px 7px; border-radius: 3px; cursor: pointer; font-size: 12px; }
-        .timeframes button:hover { color: #d1d4dc; }
-        .timeframes button.active { color: #2962ff; background: rgba(41,98,255,0.1); }
-        .vsep { width: 1px; height: 18px; background: #2a2e39; margin: 0 2px; }
-        .toggle-lbl { display: flex; align-items: center; gap: 3px; font-size: 11px; color: #787b86; cursor: pointer; }
+        .timeframes button { background: transparent; color: #6b7280; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease; }
+        .timeframes button:hover { color: #d1d4dc; background: rgba(255,255,255,0.03); }
+        .timeframes button.active { color: #2962ff; background: rgba(41,98,255,0.12); font-weight: 700; }
+        .vsep { width: 1px; height: 20px; background: linear-gradient(180deg, transparent, #1e2a3a, transparent); margin: 0 4px; }
+        .toggle-lbl { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; cursor: pointer; }
 
-        .info-bar { display: flex; align-items: center; gap: 12px; padding: 3px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
-        .info-bar .ticker-name { font-size: 15px; font-weight: 600; }
-        .info-bar .price { font-size: 14px; font-weight: 600; }
-        .info-bar .change { font-size: 12px; font-weight: 500; }
-        .info-bar .label { color: #787b86; }
-        .info-bar .val { color: #d1d4dc; margin-left: 3px; }
-        .info-bar .sep { color: #363a45; }
-        .delay-badge { background: rgba(255,152,0,0.15); color: #ff9800; font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid rgba(255,152,0,0.3); margin-left: auto; }
+        .info-bar { display: flex; align-items: center; gap: 14px; padding: 6px 14px; background: linear-gradient(180deg, #111827 0%, #0f1520 100%); border-bottom: 1px solid #1e2a3a; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
+        .info-bar .ticker-name { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; }
+        .info-bar .price { font-size: 16px; font-weight: 700; }
+        .info-bar .change { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+        .info-bar .change.green { background: rgba(38,166,154,0.12); }
+        .info-bar .change.red { background: rgba(239,83,80,0.12); }
+        .info-bar .label { color: #4b5563; font-weight: 500; }
+        .info-bar .val { color: #9ca3af; margin-left: 3px; font-weight: 500; }
+        .info-bar .sep { color: #1e2a3a; }
+        .delay-badge { background: rgba(255,152,0,0.1); color: #f59e0b; font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,152,0,0.2); margin-left: auto; font-weight: 500; }
         .ticker-search-wrap { position: relative; }
-        #ticker-search { background: #2a2e39; border: 1px solid #363a45; color: #d1d4dc; padding: 3px 8px; border-radius: 4px; font-size: 12px; width: 130px; outline: none; }
-        #ticker-search:focus { border-color: #2962ff; }
-        .ticker-results { position: absolute; top: 100%; left: 0; background: #1e222d; border: 1px solid #363a45; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 100; width: 200px; display: none; }
+        #ticker-search { background: #151d2e; border: 1px solid #1e2a3a; color: #d1d4dc; padding: 4px 10px; border-radius: 6px; font-size: 12px; width: 140px; outline: none; transition: all 0.2s ease; }
+        #ticker-search:focus { border-color: #2962ff; box-shadow: 0 0 12px rgba(41,98,255,0.15); }
+        .ticker-results { position: absolute; top: 100%; left: 0; background: #151d2e; border: 1px solid #1e2a3a; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; width: 220px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .ticker-results.show { display: block; }
-        .ticker-result { padding: 5px 10px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; }
-        .ticker-result:hover { background: #2a2e39; }
-        .ticker-result .tr-name { color: #787b86; font-size: 11px; }
+        .ticker-result { padding: 6px 12px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; transition: background 0.15s; }
+        .ticker-result:hover { background: rgba(41,98,255,0.08); }
+        .ticker-result .tr-name { color: #6b7280; font-size: 11px; }
         .wl-item .wl-del { display: none; background: none; border: none; color: #ef5350; cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; }
         .wl-item:hover .wl-del { display: block; }
-        .regime-badge { font-size: 10px; padding: 1px 6px; border-radius: 3px; border: 1px solid; margin-left: 6px; }
+        .regime-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid; margin-left: 6px; font-weight: 600; }
         .green { color: #26a69a; }
         .red { color: #ef5350; }
 
         #chart-container { flex: 1; min-height: 0; position: relative; }
 
-        .bottom-panel { height: 170px; background: #1a1d29; border-top: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: height 0.2s; }
-        .bottom-panel.collapsed { height: 26px; }
-        .panel-tabs { display: flex; background: #1e222d; flex-shrink: 0; }
-        .panel-tab { background: none; border: none; color: #787b86; padding: 5px 12px; cursor: pointer; font-size: 11px; border-bottom: 2px solid transparent; }
-        .panel-tab:hover { color: #d1d4dc; }
-        .panel-tab.active { color: #d1d4dc; border-bottom-color: #2962ff; }
-        .panel-collapse { margin-left: auto; background: none; border: none; color: #787b86; cursor: pointer; padding: 5px 10px; font-size: 12px; }
-        .panel-body { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 12px; display: none; }
+        .bottom-panel { height: 190px; background: linear-gradient(180deg, #111827 0%, #0d1117 100%); border-top: 1px solid #1e2a3a; display: flex; flex-direction: column; flex-shrink: 0; transition: height 0.3s ease; }
+        .bottom-panel.collapsed { height: 28px; }
+        .panel-tabs { display: flex; background: linear-gradient(180deg, #141b2d 0%, #111827 100%); flex-shrink: 0; gap: 2px; padding: 0 4px; }
+        .panel-tab { background: none; border: none; color: #6b7280; padding: 6px 14px; cursor: pointer; font-size: 11px; font-weight: 600; border-bottom: 2px solid transparent; transition: all 0.2s ease; letter-spacing: 0.3px; }
+        .panel-tab:hover { color: #d1d4dc; background: rgba(255,255,255,0.02); }
+        .panel-tab.active { color: #e1e4ec; border-bottom-color: #2962ff; background: rgba(41,98,255,0.05); }
+        .panel-collapse { margin-left: auto; background: none; border: none; color: #6b7280; cursor: pointer; padding: 6px 12px; font-size: 12px; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 10px 14px; font-size: 12px; display: none; }
         .panel-body.active { display: block; }
-        .panel-body::-webkit-scrollbar { width: 4px; }
-        .panel-body::-webkit-scrollbar-thumb { background: #363a45; border-radius: 2px; }
+        .panel-body::-webkit-scrollbar { width: 3px; }
+        .panel-body::-webkit-scrollbar-thumb { background: #2962ff40; border-radius: 3px; }
 
-        .adv-wrap { display: flex; gap: 12px; height: 100%; }
+        .adv-wrap { display: flex; gap: 16px; height: 100%; }
         #adv-text { flex: 1; min-width: 0; }
-        #adv-gauge { width: 180px; height: 120px; flex-shrink: 0; }
-        .adv-line { padding: 2px 0; line-height: 1.5; }
-        .adv-rec { margin-top: 6px; padding: 8px; border-radius: 4px; background: #1e222d; }
-        .adv-rec.buy { border-left: 3px solid #26a69a; }
-        .adv-rec.sell { border-left: 3px solid #ef5350; }
-        .adv-rec.neutral { border-left: 3px solid #787b86; }
-        .adv-rec b { font-size: 14px; }
-        .muted { color: #787b86; }
+        #adv-gauge { width: 200px; height: 140px; flex-shrink: 0; }
+        .adv-line { padding: 2px 0; line-height: 1.6; }
+        .adv-rec { margin-top: 6px; padding: 10px 12px; border-radius: 6px; background: linear-gradient(135deg, #151d2e 0%, #111827 100%); border: 1px solid #1e2a3a; }
+        .adv-rec.buy { border-left: 3px solid #26a69a; box-shadow: inset 0 0 30px rgba(38,166,154,0.05); }
+        .adv-rec.sell { border-left: 3px solid #ef5350; box-shadow: inset 0 0 30px rgba(239,83,80,0.05); }
+        .adv-rec.neutral { border-left: 3px solid #4b5563; }
+        .adv-rec b { font-size: 15px; }
+        .muted { color: #6b7280; }
 
         table.data { width: 100%; border-collapse: collapse; font-size: 11px; }
-        table.data th { text-align: left; color: #787b86; font-weight: 500; padding: 3px 8px; border-bottom: 1px solid #2a2e39; }
-        table.data td { padding: 3px 8px; border-bottom: 1px solid rgba(42,46,57,0.3); }
-        .del-btn { background: none; border: none; color: #ef5350; cursor: pointer; font-size: 12px; }
+        table.data th { text-align: left; color: #4b5563; font-weight: 600; padding: 4px 10px; border-bottom: 1px solid #1e2a3a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+        table.data td { padding: 4px 10px; border-bottom: 1px solid rgba(30,42,58,0.3); }
+        table.data tr:hover { background: rgba(41,98,255,0.03); }
+        .del-btn { background: none; border: none; color: #ef5350; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .del-btn:hover { opacity: 1; }
 
-        #bt-stats { margin-bottom: 4px; }
-        #equity-chart { height: 70px; width: 100%; }
+        #bt-stats { margin-bottom: 6px; }
+        #bt-stats b { font-size: 13px; }
+        #equity-chart { height: 100px; width: 100%; border-radius: 4px; overflow: hidden; }
 
-        #heatmap-container { width: 100%; height: 100%; min-height: 120px; }
+        #heatmap-container { width: 100%; height: 100%; min-height: 130px; }
         #screener-table { height: 100%; }
 
-        .status-bar { padding: 3px 12px; font-size: 11px; color: #787b86; background: #1e222d; border-top: 1px solid #2a2e39; flex-shrink: 0; }
+        .status-bar { padding: 4px 14px; font-size: 11px; color: #4b5563; background: linear-gradient(90deg, #0d1117, #111827); border-top: 1px solid #1e2a3a; flex-shrink: 0; }
 
-        .orderbook { width: 220px; background: #1a1d29; border-left: 1px solid #2a2e39; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.2s; overflow: hidden; }
+        .orderbook { width: 240px; background: linear-gradient(180deg, #111827 0%, #0f1520 100%); border-left: 1px solid #1e2a3a; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s ease; overflow: hidden; }
         .orderbook.collapsed { width: 0; border-left: none; }
-        #depth-chart { height: 160px; flex-shrink: 0; border-bottom: 1px solid #2a2e39; }
+        #depth-chart { height: 180px; flex-shrink: 0; border-bottom: 1px solid #1e2a3a; }
         .ob-body { flex: 1; overflow-y: auto; }
-        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 2px 8px; font-size: 11px; }
-        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: 0.18; }
-        .ob-row.ask .ob-bar { background: #ef5350; }
-        .ob-row.bid .ob-bar { background: #26a69a; }
-        .ob-row.ask .ob-price { color: #ef5350; }
-        .ob-row.bid .ob-price { color: #26a69a; }
+        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 3px 10px; font-size: 11px; transition: background 0.15s; }
+        .ob-row:hover { background: rgba(255,255,255,0.02); }
+        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: 0.12; }
+        .ob-row.ask .ob-bar { background: linear-gradient(90deg, transparent, #ef5350); }
+        .ob-row.bid .ob-bar { background: linear-gradient(90deg, transparent, #26a69a); }
+        .ob-row.ask .ob-price { color: #ef5350; font-weight: 600; }
+        .ob-row.bid .ob-price { color: #26a69a; font-weight: 600; }
         .ob-price, .ob-vol { z-index: 1; }
-        .ob-vol { color: #787b86; }
-        .ob-spread { padding: 4px 8px; font-size: 11px; color: #787b86; text-align: center; border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39; background: #1e222d; }
+        .ob-vol { color: #6b7280; }
+        .ob-spread { padding: 6px 10px; font-size: 11px; color: #6b7280; text-align: center; border-top: 1px solid #1e2a3a; border-bottom: 1px solid #1e2a3a; background: rgba(15,21,32,0.8); font-weight: 600; }
 
         .overlay-wrap { position: relative; }
-        .overlay-panel { display: none; position: absolute; top: 100%; right: 0; background: #1e222d; border: 1px solid #363a45; border-radius: 4px; padding: 8px; z-index: 100; width: 260px; }
+        .overlay-panel { display: none; position: absolute; top: 100%; right: 0; background: #151d2e; border: 1px solid #1e2a3a; border-radius: 8px; padding: 10px; z-index: 100; width: 280px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
         .overlay-panel.show { display: block; }
-        #overlay-search { background: #2a2e39; border: 1px solid #363a45; color: #d1d4dc; padding: 4px 8px; border-radius: 4px; font-size: 12px; width: 100%; outline: none; margin-bottom: 4px; }
-        #overlay-search:focus { border-color: #2962ff; }
+        #overlay-search { background: #111827; border: 1px solid #1e2a3a; color: #d1d4dc; padding: 5px 10px; border-radius: 6px; font-size: 12px; width: 100%; outline: none; margin-bottom: 6px; }
+        #overlay-search:focus { border-color: #2962ff; box-shadow: 0 0 8px rgba(41,98,255,0.15); }
         .overlay-results { max-height: 150px; overflow-y: auto; }
-        .overlay-result { padding: 4px 8px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; border-radius: 3px; }
-        .overlay-result:hover { background: #2a2e39; }
-        .overlay-result .or-info { color: #787b86; font-size: 10px; }
-        .overlay-active { margin-top: 4px; border-top: 1px solid #2a2e39; padding-top: 4px; }
-        .overlay-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin: 2px; background: #2a2e39; }
-        .overlay-tag .ot-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .overlay-result { padding: 5px 10px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; border-radius: 4px; transition: background 0.15s; }
+        .overlay-result:hover { background: rgba(41,98,255,0.08); }
+        .overlay-result .or-info { color: #6b7280; font-size: 10px; }
+        .overlay-active { margin-top: 6px; border-top: 1px solid #1e2a3a; padding-top: 6px; }
+        .overlay-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 5px; font-size: 11px; margin: 2px; background: rgba(41,98,255,0.08); border: 1px solid rgba(41,98,255,0.15); font-weight: 500; }
+        .overlay-tag .ot-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }
         .overlay-tag .ot-remove { cursor: pointer; color: #ef5350; font-size: 13px; margin-left: 4px; }
 
-        .multichart-overlay { display: none; position: fixed; inset: 0; background: #131722; z-index: 200; }
+        .multichart-overlay { display: none; position: fixed; inset: 0; background: #0a0e17; z-index: 200; }
         .multichart-overlay.show { display: flex; flex-direction: column; }
-        .mc-header { display: flex; align-items: center; padding: 6px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; gap: 10px; }
-        .mc-header h2 { font-size: 14px; color: #787b86; font-weight: 600; }
-        .mc-close { background: none; border: 1px solid #363a45; color: #d1d4dc; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: auto; }
+        .mc-header { display: flex; align-items: center; padding: 8px 16px; background: linear-gradient(180deg, #141b2d 0%, #111827 100%); border-bottom: 1px solid #1e2a3a; gap: 12px; }
+        .mc-header h2 { font-size: 15px; color: #6b7280; font-weight: 700; letter-spacing: 0.5px; }
+        .mc-close { background: rgba(239,83,80,0.08); border: 1px solid rgba(239,83,80,0.2); color: #ef5350; padding: 4px 14px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-left: auto; font-weight: 600; transition: all 0.2s ease; }
+        .mc-close:hover { background: rgba(239,83,80,0.15); }
         .mc-grid { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .mc-row { display: flex; flex: 1; min-height: 0; }
-        .mc-cell { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; background: #1a1d29; }
-        .mc-cell-header { padding: 4px 8px; font-size: 12px; font-weight: 600; background: #1e222d; border-bottom: 1px solid #2a2e39; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-        .mc-cell-header:hover { color: #2962ff; }
-        .mc-cell-header .mc-price { font-weight: 400; font-size: 11px; }
+        .mc-cell { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; background: #0f1520; }
+        .mc-cell-header { padding: 6px 12px; font-size: 13px; font-weight: 700; background: linear-gradient(180deg, #141b2d 0%, #111827 100%); border-bottom: 1px solid #1e2a3a; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; }
+        .mc-cell-header:hover { color: #2962ff; background: rgba(41,98,255,0.05); }
+        .mc-cell-header .mc-price { font-weight: 500; font-size: 12px; }
         .mc-chart { flex: 1; min-height: 0; }
-        .gutter { background: #2a2e39; background-repeat: no-repeat; background-position: 50%; }
-        .gutter.gutter-horizontal { cursor: col-resize; }
-        .gutter.gutter-vertical { cursor: row-resize; }
+        .gutter { background: #1e2a3a; background-repeat: no-repeat; background-position: 50%; }
+        .gutter.gutter-horizontal { cursor: col-resize; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="20"><rect fill="%232962ff40" width="2" height="20" rx="1"/></svg>'); }
+        .gutter.gutter-vertical { cursor: row-resize; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="2"><rect fill="%232962ff40" width="20" height="2" rx="1"/></svg>'); }
 
         #chart-container.draw-active { cursor: crosshair; }
 
+        /* Drawing toolbar dropdown */
+        .draw-wrap { position: relative; }
+        .draw-panel { display: none; position: absolute; top: 100%; left: 0; background: #151d2e; border: 1px solid #1e2a3a; border-radius: 8px; padding: 8px; z-index: 120; width: 340px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); max-height: 70vh; overflow-y: auto; }
+        .draw-panel.show { display: block; }
+        .draw-cat { font-size: 10px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.6px; margin: 8px 4px 4px; }
+        .draw-cat:first-child { margin-top: 2px; }
+        .draw-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+        .draw-tool { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 11px; color: #b0b6c0; transition: all 0.15s; border: 1px solid transparent; }
+        .draw-tool:hover { background: rgba(41,98,255,0.1); color: #e1e4ec; border-color: rgba(41,98,255,0.2); }
+        .draw-tool.active { background: rgba(41,98,255,0.18); color: #2962ff; border-color: #2962ff; }
+        .draw-tool .di { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; }
+        .draw-panel-foot { display: flex; gap: 4px; margin-top: 8px; border-top: 1px solid #1e2a3a; padding-top: 8px; }
+        .draw-panel-foot button { flex: 1; background: #111827; border: 1px solid #1e2a3a; color: #8b95a5; padding: 5px; border-radius: 5px; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+        .draw-panel-foot button:hover { color: #e1e4ec; border-color: #2962ff60; }
+
+        /* Crosshair tooltip */
+        .cross-tip { position: absolute; display: none; pointer-events: none; background: rgba(21,29,46,0.95); border: 1px solid #2962ff40; border-radius: 6px; padding: 6px 9px; font-size: 11px; z-index: 50; box-shadow: 0 6px 20px rgba(0,0,0,0.5); backdrop-filter: blur(4px); white-space: nowrap; line-height: 1.6; }
+        .cross-tip.show { display: block; }
+        .cross-tip .ct-row { display: flex; gap: 8px; justify-content: space-between; }
+        .cross-tip .ct-lbl { color: #6b7280; }
+        .cross-tip .ct-date { color: #9ca3af; font-weight: 600; margin-bottom: 2px; padding-bottom: 2px; border-bottom: 1px solid #1e2a3a; }
+
+        /* Daily range bar in info-bar */
+        .range-bar { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+        .range-track { position: relative; width: 90px; height: 5px; background: linear-gradient(90deg, #ef535040, #26a69a40); border-radius: 3px; }
+        .range-dot { position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #fff; border: 1px solid #2962ff; transform: translate(-50%,-50%); box-shadow: 0 0 6px rgba(41,98,255,0.5); }
+        .range-lo { color: #ef5350; } .range-hi { color: #26a69a; }
+
+        /* Watchlist sort + header */
+        .wl-header-row { display: flex; align-items: center; justify-content: space-between; }
+        .wl-sort { display: flex; gap: 2px; }
+        .wl-sort button { background: none; border: 1px solid transparent; color: #4b5563; cursor: pointer; font-size: 10px; padding: 1px 5px; border-radius: 3px; transition: all 0.15s; }
+        .wl-sort button:hover { color: #d1d4dc; }
+        .wl-sort button.active { color: #2962ff; background: rgba(41,98,255,0.12); border-color: #2962ff40; }
+        .wl-add { background: rgba(41,98,255,0.1); border: 1px solid #2962ff40; color: #2962ff; cursor: pointer; font-size: 13px; padding: 0 6px; border-radius: 4px; line-height: 1.4; }
+
         @media (max-width: 768px) {
-            .ticker-tape { height: 24px; }
-            .tape-item { padding: 0 10px; font-size: 10px; }
+            .ticker-tape { height: 28px; }
+            .tape-item { padding: 0 12px; font-size: 10px; }
             .watchlist { width: 0; border-right: none; }
-            .watchlist:not(.collapsed) { width: 170px; position: absolute; z-index: 50; height: 100%; }
+            .watchlist:not(.collapsed) { width: 180px; position: absolute; z-index: 50; height: 100%; }
             .orderbook { width: 0; border-left: none; }
-            .orderbook:not(.collapsed) { width: 170px; position: absolute; right: 0; z-index: 50; height: 100%; }
+            .orderbook:not(.collapsed) { width: 180px; position: absolute; right: 0; z-index: 50; height: 100%; }
             .tickers { display: none; }
-            .toolbar { gap: 4px; padding: 3px 6px; }
-            .icon-btn { padding: 2px 5px; font-size: 11px; }
-            .info-bar { gap: 6px; padding: 2px 8px; font-size: 11px; }
-            .info-bar .ticker-name { font-size: 13px; }
-            .info-bar .price { font-size: 12px; }
-            #ticker-search { width: 90px; font-size: 11px; }
-            .bottom-panel { height: 120px; }
+            .toolbar { gap: 4px; padding: 4px 8px; }
+            .icon-btn { padding: 3px 6px; font-size: 11px; }
+            .info-bar { gap: 8px; padding: 4px 10px; font-size: 11px; }
+            .info-bar .ticker-name { font-size: 14px; }
+            .info-bar .price { font-size: 13px; }
+            #ticker-search { width: 100px; font-size: 11px; }
+            .bottom-panel { height: 140px; }
             .vsep { display: none; }
         }
     </style>
@@ -192,7 +243,7 @@
     <div class="ticker-tape" id="ticker-tape"><div class="tape-track" id="tape-track"></div></div>
     <div class="app">
         <aside class="watchlist" id="watchlist">
-            <div class="side-header">Вотчлист</div>
+            <div class="side-header"><div class="wl-header-row"><span>Вотчлист</span><div class="wl-sort"><button data-sort="default" class="active" title="По умолчанию">•</button><button data-sort="change" title="По изменению">%</button><button data-sort="volume" title="По объёму">Vol</button></div></div></div>
             <div class="wl-body" id="wl-body"></div>
         </aside>
         <div class="main">
@@ -204,10 +255,11 @@
                 <div class="vsep"></div>
                 <div class="timeframes" id="tf-bar"></div>
                 <div class="vsep"></div>
-                <button class="icon-btn" data-tool="hline" title="Горизонтальный уровень">Уровень</button>
-                <button class="icon-btn" data-tool="alert" title="Алерт по цене">Алерт</button>
-                <button class="icon-btn" data-tool="fib" title="Фибоначчи">Фибо</button>
-                <button class="icon-btn" data-tool="trend" title="Трендлиния">Тренд</button>
+                <div class="draw-wrap">
+                    <button class="icon-btn" id="draw-btn" title="Инструменты рисования">&#9998; Рисование</button>
+                    <div class="draw-panel" id="draw-panel"></div>
+                </div>
+                <button class="icon-btn" data-tool="alert" title="Алерт по цене">&#128276; Алерт</button>
                 <button class="icon-btn" id="clear-draw" title="Очистить рисунки">Очистить</button>
                 <div class="vsep"></div>
                 <label class="toggle-lbl"><input type="checkbox" id="sig-toggle" checked> Сигналы</label>
@@ -233,13 +285,14 @@
                 <span><span class="label">L</span><span class="val" id="info-l">&mdash;</span></span>
                 <span><span class="label">C</span><span class="val" id="info-c">&mdash;</span></span>
                 <span><span class="label">Vol</span><span class="val" id="info-v">&mdash;</span></span>
+                <span class="range-bar" id="range-bar" style="display:none"><span class="range-lo" id="range-lo">&mdash;</span><span class="range-track"><span class="range-dot" id="range-dot"></span></span><span class="range-hi" id="range-hi">&mdash;</span></span>
                 <span class="sep">|</span>
                 <span><span class="label">RSI</span><span class="val" id="info-rsi">&mdash;</span></span>
                 <span><span class="label">MACD</span><span class="val" id="info-macd">&mdash;</span></span>
                 <span class="regime-badge" id="regime-badge" style="display:none"></span>
                 <span class="delay-badge">~15 мин</span>
             </div>
-            <div id="chart-container"></div>
+            <div id="chart-container"><div class="cross-tip" id="cross-tip"></div></div>
             <div class="bottom-panel" id="bottom-panel">
                 <div class="panel-tabs">
                     <button class="panel-tab active" data-tab="advisor">Советник</button>
@@ -276,10 +329,12 @@
     import { loadAlerts, addAlert, removeAlert, checkAlerts, requestPermission } from './js/alerts.js';
 
     const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = LightweightCharts;
-    const DRAW_KEY = 'moex_drawings';
+    const createTextWatermark = LightweightCharts.createTextWatermark;
+    const DRAW_KEY = 'moex_drawings_v2';
     const hasECharts = typeof echarts !== 'undefined';
     const hasSplit = typeof Split !== 'undefined';
     const hasTabulator = typeof Tabulator !== 'undefined';
+    const hasDrawing = typeof LightweightChartsDrawing !== 'undefined';
 
     const TICKERS = ['SBER','GAZP','LKOH','YNDX','GMKN','ROSN','NVTK','MTSS','MGNT','PLZL'];
     const TIMEFRAMES = [
@@ -301,16 +356,24 @@
     let chart;
     let candleSeries, volumeSeries, sma20Series, sma50Series, bb1Series, bb2Series;
     let rsiSeries, macdLineSrs, macdSignalSrs, macdHistSrs;
-    let srLines = [], drawSeries = [], drawPriceLines = [], alertLines = [];
-    let drawMode = null, pendingPoint = null;
+    let srLines = [], alertLines = [];
     let depthEChart = null, gaugeEChart = null, treemapEChart = null, equityChart = null;
     let screenerTable = null;
     const sparkCache = {};
     let lastPrices = [];
+    let wlSort = 'default';
+
+    // Drawing tools (lightweight-charts-drawing)
+    let drawManager = null, toolRegistry = null;
+    let activeDrawTool = null, pendingAnchors = [], alertMode = false;
+    let watermark = null;
 
     function exitDrawMode(msg) {
-        drawMode = null; pendingPoint = null;
+        activeDrawTool = null; pendingAnchors = []; alertMode = false;
+        if (drawManager) drawManager.setActiveTool(null);
         document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
+        document.getElementById('draw-btn').classList.remove('active');
         document.getElementById('chart-container').classList.remove('draw-active');
         if (msg) setStatus(msg);
     }
@@ -345,27 +408,35 @@
         if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook();
     }
 
-    document.querySelectorAll('[data-tool]').forEach(btn => {
-        btn.onclick = () => {
-            const tool = btn.dataset.tool;
-            if (tool === 'hline' || tool === 'alert' || tool === 'fib' || tool === 'trend') {
-                if (drawMode === tool) { drawMode = null; pendingPoint = null; }
-                else { drawMode = tool; pendingPoint = null; }
-                document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === drawMode));
-                document.getElementById('chart-container').classList.toggle('draw-active', !!drawMode);
-                const hints = { hline: 'Уровень: кликните на графике', alert: 'Алерт: кликните на графике', fib: 'Фибо: кликните верхнюю точку', trend: 'Тренд: кликните первую точку' };
-                setStatus(drawMode ? hints[drawMode] : '');
-            }
-        };
-    });
+    // Alert tool (price alert, not a drawing)
+    document.querySelector('[data-tool="alert"]').onclick = () => {
+        if (alertMode) { exitDrawMode(''); return; }
+        exitDrawMode('');
+        alertMode = true;
+        document.querySelector('[data-tool="alert"]').classList.add('active');
+        document.getElementById('chart-container').classList.add('draw-active');
+        setStatus('Алерт: кликните на графике на нужной цене');
+    };
     document.getElementById('clear-draw').onclick = () => {
-        const all = loadDrawings().filter(d => d.ticker !== currentTicker);
-        localStorage.setItem(DRAW_KEY, JSON.stringify(all));
-        renderDrawings();
+        if (drawManager) drawManager.clearAll();
+        saveDrawings();
+        setStatus('Рисунки очищены');
     };
 
     document.getElementById('sig-toggle').onchange = () => renderSignalMarkers();
     document.getElementById('sr-toggle').onchange = () => renderSR();
+
+    document.getElementById('draw-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('draw-panel').classList.toggle('show'); };
+    document.addEventListener('click', e => { if (!e.target.closest('.draw-wrap')) document.getElementById('draw-panel').classList.remove('show'); });
+
+    // Watchlist sorting
+    document.querySelectorAll('.wl-sort button').forEach(btn => {
+        btn.onclick = () => {
+            wlSort = btn.dataset.sort;
+            document.querySelectorAll('.wl-sort button').forEach(b => b.classList.toggle('active', b === btn));
+            renderWatchlist();
+        };
+    });
 
     document.querySelectorAll('.panel-tab').forEach(tab => {
         tab.onclick = () => {
@@ -415,39 +486,17 @@
         macdHistSrs = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, 2);
         macdLineSrs.createPriceLine({ price: 0, color: '#363a45', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 
-        chart.subscribeCrosshairMove(param => { if (!param.time) return; const d = dataLookup.get(timeKey(param.time)); if (d) updateInfo(d); });
-        chart.subscribeClick(param => {
-            if (!drawMode || !param.time || !param.point) return;
-            const price = candleSeries.coordinateToPrice(param.point.y);
-            if (price == null) return;
-            const roundP = Math.round(price * 100) / 100;
-
-            if (drawMode === 'hline') {
-                saveDrawing({ type: 'hline', price: roundP }); renderDrawings();
-                exitDrawMode(`Уровень ${roundP.toFixed(2)} добавлен`);
-            } else if (drawMode === 'alert') {
-                const last = lastData.length ? lastData[lastData.length-1].close : roundP;
-                addAlert(currentTicker, roundP, roundP >= last ? 'above' : 'below');
-                requestPermission(); renderAlerts(); renderAlertLines();
-                exitDrawMode(`Алерт на ${roundP.toFixed(2)} добавлен`);
-            } else if (drawMode === 'fib') {
-                if (!pendingPoint) { pendingPoint = { time: param.time, price: roundP }; setStatus('Фибо: кликните нижнюю точку'); }
-                else {
-                    const hi = Math.max(pendingPoint.price, roundP), lo = Math.min(pendingPoint.price, roundP);
-                    saveDrawing({ type: 'fib', high: hi, low: lo }); renderDrawings();
-                    exitDrawMode(`Фибоначчи ${lo.toFixed(2)}–${hi.toFixed(2)} добавлен`);
-                }
-            } else if (drawMode === 'trend') {
-                if (!pendingPoint) { pendingPoint = { time: param.time, price: roundP }; setStatus('Тренд: кликните вторую точку'); }
-                else {
-                    saveDrawing({ type: 'trend', p1: pendingPoint, p2: { time: param.time, price: roundP } });
-                    renderDrawings(); exitDrawMode('');
-                }
-            }
+        chart.subscribeCrosshairMove(param => {
+            const tip = document.getElementById('cross-tip');
+            if (!param.time || !param.point) { tip.classList.remove('show'); return; }
+            const d = dataLookup.get(timeKey(param.time));
+            if (d) { updateInfo(d); showCrossTip(d, param.point); } else tip.classList.remove('show');
         });
+        document.getElementById('chart-container').addEventListener('mouseleave', () => document.getElementById('cross-tip').classList.remove('show'));
         document.addEventListener('keydown', e => {
             if (e.target.tagName === 'INPUT') return;
-            if (e.key === 'Escape') { if (drawMode) { exitDrawMode('Отменено'); return; } if (document.getElementById('multichart-overlay').classList.contains('show')) { closeMultichart(); return; } }
+            if (e.key === 'Escape') { if (activeDrawTool || alertMode) { exitDrawMode('Отменено'); return; } if (drawManager && drawManager.getSelectedDrawing()) { drawManager.deselectAll(); return; } if (document.getElementById('multichart-overlay').classList.contains('show')) { closeMultichart(); return; } }
+            if ((e.key === 'Delete' || e.key === 'Backspace') && drawManager) { const sel = drawManager.getSelectedDrawing(); if (sel) { drawManager.removeDrawing(sel.id); saveDrawings(); setStatus('Объект удалён'); return; } }
             if (e.key === 'm' || e.key === 'M') { if (document.getElementById('multichart-overlay').classList.contains('show')) closeMultichart(); else openMultichart(); return; }
             if (e.key >= '1' && e.key <= '6') { const idx = parseInt(e.key) - 1; if (idx < TIMEFRAMES.length) { const btns = tfBar.querySelectorAll('button'); btns.forEach(b => b.classList.remove('active')); btns[idx]?.classList.add('active'); currentTF = TIMEFRAMES[idx]; loadData(); } return; }
             if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
@@ -455,11 +504,28 @@
                 const next = e.key === 'ArrowRight' ? (idx + 1) % TICKERS.length : (idx - 1 + TICKERS.length) % TICKERS.length;
                 selectTicker(TICKERS[next]); return;
             }
-            const toolMap = { h: 'hline', a: 'alert', f: 'fib', t: 'trend' };
-            if (toolMap[e.key]) { document.querySelector(`[data-tool="${toolMap[e.key]}"]`)?.click(); return; }
+            const toolMap = { t: 'trend-line', h: 'horizontal-line', f: 'fib-retracement', r: 'rectangle', b: 'brush', v: 'vertical-line' };
+            if (toolMap[e.key]) { activateDrawTool(toolMap[e.key]); return; }
+            if (e.key === 'a' || e.key === 'A') { document.querySelector('[data-tool="alert"]')?.click(); return; }
             if (e.key === 'c' || e.key === 'C') { document.getElementById('clear-draw')?.click(); return; }
         });
         window.addEventListener('resize', resizeChart);
+    }
+
+    function updateWatermark() {
+        if (!createTextWatermark || !chart.panes) return;
+        try {
+            const pane = chart.panes()[0];
+            if (!pane) return;
+            if (!watermark) watermark = createTextWatermark(pane, {});
+            watermark.applyOptions({
+                horzAlign: 'center', vertAlign: 'center',
+                lines: [
+                    { text: currentTicker, color: 'rgba(120,130,150,0.10)', fontSize: 64, fontStyle: 'bold' },
+                    { text: currentTF.label + ' · MOEX', color: 'rgba(120,130,150,0.08)', fontSize: 20 },
+                ],
+            });
+        } catch (e) {}
     }
 
     function resizeChart() { const el = document.getElementById('chart-container'); chart.applyOptions({ width: el.clientWidth, height: el.clientHeight }); }
@@ -486,27 +552,148 @@
         m.className = 'val' + (d.macdHist > 0 ? ' green' : d.macdHist < 0 ? ' red' : '');
     }
 
-    // ---- Drawings ----
-    function loadDrawings() { try { return JSON.parse(localStorage.getItem(DRAW_KEY) || '[]'); } catch { return []; } }
-    function saveDrawing(d) { const all = loadDrawings(); all.push({ ...d, ticker: currentTicker }); localStorage.setItem(DRAW_KEY, JSON.stringify(all)); }
+    function updateRangeBar(last) {
+        const bar = document.getElementById('range-bar');
+        if (!last || last.high === last.low) { bar.style.display = 'none'; return; }
+        bar.style.display = 'inline-flex';
+        document.getElementById('range-lo').textContent = last.low.toFixed(2);
+        document.getElementById('range-hi').textContent = last.high.toFixed(2);
+        const pct = Math.max(0, Math.min(100, (last.close - last.low) / (last.high - last.low) * 100));
+        document.getElementById('range-dot').style.left = pct + '%';
+    }
 
-    function renderDrawings() {
-        drawPriceLines.forEach(l => candleSeries.removePriceLine(l)); drawPriceLines = [];
-        drawSeries.forEach(s => chart.removeSeries(s)); drawSeries = [];
-        const mine = loadDrawings().filter(d => d.ticker === currentTicker);
-        for (const d of mine) {
-            if (d.type === 'hline') drawPriceLines.push(candleSeries.createPriceLine({ price: d.price, color: '#d1d4dc', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: 'Уровень' }));
-            else if (d.type === 'fib') {
-                const diff = d.high - d.low;
-                [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1].forEach(lv => {
-                    drawPriceLines.push(candleSeries.createPriceLine({ price: d.high - diff * lv, color: '#FFD700', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: (lv * 100).toFixed(1) + '%' }));
-                });
+    function showCrossTip(d, point) {
+        const tip = document.getElementById('cross-tip');
+        const cont = document.getElementById('chart-container');
+        const up = d.close >= d.open;
+        const col = up ? '#26a69a' : '#ef5350';
+        let html = `<div class="ct-date">${timeKey(d.time)}</div>`;
+        html += `<div class="ct-row"><span class="ct-lbl">O</span><span>${d.open.toFixed(2)}</span></div>`;
+        html += `<div class="ct-row"><span class="ct-lbl">H</span><span>${d.high.toFixed(2)}</span></div>`;
+        html += `<div class="ct-row"><span class="ct-lbl">L</span><span>${d.low.toFixed(2)}</span></div>`;
+        html += `<div class="ct-row"><span class="ct-lbl">C</span><span style="color:${col};font-weight:600">${d.close.toFixed(2)}</span></div>`;
+        html += `<div class="ct-row"><span class="ct-lbl">Объём</span><span>${formatVol(d.volume)}</span></div>`;
+        if (d.rsi !== undefined) html += `<div class="ct-row"><span class="ct-lbl">RSI</span><span style="color:${d.rsi>70?'#ef5350':d.rsi<30?'#26a69a':'#d1d4dc'}">${d.rsi.toFixed(1)}</span></div>`;
+        if (d.macd !== undefined) html += `<div class="ct-row"><span class="ct-lbl">MACD</span><span style="color:${d.macdHist>0?'#26a69a':'#ef5350'}">${d.macd.toFixed(2)}</span></div>`;
+        tip.innerHTML = html;
+        tip.classList.add('show');
+        const tw = tip.offsetWidth, th = tip.offsetHeight, cw = cont.clientWidth, ch = cont.clientHeight;
+        let x = point.x + 16, y = point.y + 16;
+        if (x + tw > cw) x = point.x - tw - 16;
+        if (y + th > ch) y = ch - th - 4;
+        tip.style.left = Math.max(2, x) + 'px';
+        tip.style.top = Math.max(2, y) + 'px';
+    }
+
+    // ---- Drawing tools (lightweight-charts-drawing) ----
+    const DRAW_ICONS = { 'trend-line':'╱','horizontal-line':'─','vertical-line':'│','ray':'➔','extended-line':'⇿','cross-line':'✛','info-line':'ⓘ','horizontal-ray':'⊸','arrow':'↗','trend-angle':'∠','parallel-channel':'▤','disjoint-channel':'⫽','regression-trend':'📈','flat-top-bottom':'⊏','fib-retracement':'🔢','fib-extension':'⇗','fib-channel':'▦','fib-circles':'◎','fib-spiral':'🌀','fib-arcs':'◠','fib-wedge':'◣','fib-time-zone':'⏱','fib-time-extension':'⏲','fib-speed-fan':'📐','gann-box':'▣','gann-fan':'✶','gann-square':'⊞','gann-square-fixed':'⊡','andrews-pitchfork':'⊥','schiff-pitchfork':'⋔','modified-schiff-pitchfork':'⋔','inside-pitchfork':'⋔','pitchfan':'⋔','rectangle':'▭','rotated-rectangle':'◇','circle':'○','ellipse':'⬭','triangle':'△','arc':'◜','curve':'∿','double-curve':'∾','path':'⌇','polyline':'⊿','brush':'🖌','highlighter':'🖍','text':'T','text-annotation':'🗒','anchored-text':'⚓','callout':'💬','note':'📝','price-note':'🏷','price-label':'🏷','signpost':'🚩','flag-mark':'⚑','pin':'📌','table':'▦','long-position':'📈','short-position':'📉','forecast':'🔮','projection':'⤴','price-range':'↕','date-range':'↔','date-price-range':'⤡','bars-pattern':'┋','arrow-marker':'➤','arrow-mark-up':'⬆','arrow-mark-down':'⬇' };
+    const CAT_NAMES = { line:'Линии', shape:'Фигуры', channel:'Каналы', fibonacci:'Фибоначчи', pitchfork:'Вилы Эндрюса', gann:'Ганн', forecasting:'Прогноз', measurement:'Измерение', annotation:'Аннотации' };
+
+    function initDrawingTools() {
+        if (!hasDrawing) { document.getElementById('draw-btn').style.display = 'none'; return; }
+        toolRegistry = LightweightChartsDrawing.getToolRegistry();
+        drawManager = new LightweightChartsDrawing.DrawingManager();
+        drawManager.attach(chart, candleSeries, document.getElementById('chart-container'));
+        drawManager.on('drawing:added', saveDrawings);
+        drawManager.on('drawing:updated', saveDrawings);
+        drawManager.on('drawing:removed', saveDrawings);
+        buildDrawPanel();
+
+        const cont = document.getElementById('chart-container');
+        cont.addEventListener('click', (ev) => {
+            const rect = cont.getBoundingClientRect();
+            const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+            const price = candleSeries.coordinateToPrice(y);
+            if (alertMode) {
+                if (price == null) return;
+                const roundP = Math.round(price * 100) / 100;
+                const last = lastData.length ? lastData[lastData.length-1].close : roundP;
+                addAlert(currentTicker, roundP, roundP >= last ? 'above' : 'below');
+                requestPermission(); renderAlerts(); renderAlertLines();
+                exitDrawMode(`Алерт на ${roundP.toFixed(2)} добавлен`);
+                return;
             }
-            else if (d.type === 'trend') {
-                const s = chart.addSeries(LineSeries, { color: '#ffffff', lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, 0);
-                const pts = [{ time: d.p1.time, value: d.p1.price }, { time: d.p2.time, value: d.p2.price }].sort((a, b) => (a.time > b.time ? 1 : -1));
-                s.setData(pts); drawSeries.push(s);
+            if (!activeDrawTool) {
+                const hit = drawManager.hitTest({ x, y });
+                if (hit) drawManager.selectDrawing(hit.id); else drawManager.deselectAll();
+                return;
             }
+            const time = chart.timeScale().coordinateToTime(x);
+            if (time == null || price == null) return;
+            pendingAnchors.push({ time, price });
+            const def = toolRegistry.get(activeDrawTool);
+            const need = def ? def.requiredAnchors : 2;
+            if (pendingAnchors.length >= need) {
+                const id = 'd' + Date.now() + Math.floor(Math.random()*1000);
+                const drawing = toolRegistry.createDrawing(activeDrawTool, id, pendingAnchors.slice(), { lineColor: '#2962ff', lineWidth: 2 });
+                if (drawing) drawManager.addDrawing(drawing);
+                const name = def ? def.name : activeDrawTool;
+                exitDrawMode(`${name} добавлен`);
+            } else {
+                setStatus(`${def ? def.name : activeDrawTool}: точка ${pendingAnchors.length}/${need}, кликните ещё`);
+            }
+        });
+    }
+
+    function buildDrawPanel() {
+        const panel = document.getElementById('draw-panel');
+        panel.innerHTML = '';
+        const cats = toolRegistry.getCategories();
+        for (const cat of cats) {
+            const tools = toolRegistry.getByCategory(cat);
+            if (!tools.length) continue;
+            const h = document.createElement('div'); h.className = 'draw-cat'; h.textContent = CAT_NAMES[cat] || cat;
+            panel.appendChild(h);
+            const grid = document.createElement('div'); grid.className = 'draw-grid';
+            for (const t of tools) {
+                const btn = document.createElement('div'); btn.className = 'draw-tool'; btn.dataset.tool = t.type;
+                const ic = document.createElement('span'); ic.className = 'di'; ic.textContent = DRAW_ICONS[t.type] || '◆';
+                const lbl = document.createElement('span'); lbl.textContent = t.name;
+                btn.append(ic, lbl);
+                btn.onclick = () => { activateDrawTool(t.type); panel.classList.remove('show'); };
+                grid.appendChild(btn);
+            }
+            panel.appendChild(grid);
+        }
+        const foot = document.createElement('div'); foot.className = 'draw-panel-foot';
+        const delBtn = document.createElement('button'); delBtn.textContent = '🗑 Удалить выбранный';
+        delBtn.onclick = () => { const sel = drawManager.getSelectedDrawing(); if (sel) { drawManager.removeDrawing(sel.id); saveDrawings(); } panel.classList.remove('show'); };
+        const clrBtn = document.createElement('button'); clrBtn.textContent = '✕ Очистить всё';
+        clrBtn.onclick = () => { drawManager.clearAll(); saveDrawings(); panel.classList.remove('show'); };
+        foot.append(delBtn, clrBtn);
+        panel.appendChild(foot);
+    }
+
+    function activateDrawTool(type) {
+        if (!drawManager) return;
+        if (activeDrawTool === type) { exitDrawMode(''); return; }
+        exitDrawMode('');
+        activeDrawTool = type;
+        pendingAnchors = [];
+        drawManager.setActiveTool(type);
+        document.getElementById('draw-btn').classList.add('active');
+        document.querySelectorAll('.draw-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === type));
+        document.getElementById('chart-container').classList.add('draw-active');
+        const def = toolRegistry.get(type);
+        setStatus(`${def ? def.name : type}: кликните на графике (нужно точек: ${def ? def.requiredAnchors : 2})`);
+    }
+
+    function saveDrawings() {
+        if (!drawManager) return;
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem(DRAW_KEY) || '{}'); } catch {}
+        all[currentTicker] = drawManager.exportDrawings();
+        localStorage.setItem(DRAW_KEY, JSON.stringify(all));
+    }
+
+    function loadDrawingsForTicker() {
+        if (!drawManager) return;
+        drawManager.clearAll();
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem(DRAW_KEY) || '{}'); } catch {}
+        const saved = all[currentTicker] || [];
+        if (saved.length) {
+            drawManager.importDrawings(saved, (type, d) => toolRegistry.createDrawing(type, d.id, d.anchors, d.style, d.options));
         }
     }
 
@@ -856,7 +1043,7 @@
         if (!trades.length) { el.style.display = 'none'; return; }
         el.style.display = 'block';
         equityChart = createChart(el, {
-            width: el.clientWidth || 300, height: 70,
+            width: el.clientWidth || 300, height: 100,
             localization: { locale: 'ru-RU' },
             layout: { background: { type: 'solid', color: '#1a1d29' }, textColor: '#787b86' },
             grid: { vertLines: { visible: false }, horzLines: { color: '#1e222d' } },
@@ -915,8 +1102,10 @@
             pe.textContent = last.close.toFixed(2) + ' ₽'; pe.className = 'price ' + (chg >= 0 ? 'green' : 'red');
             ce.textContent = (chg >= 0 ? '+' : '') + chg + '%'; ce.className = 'change ' + (chg >= 0 ? 'green' : 'red');
             updateInfo(dataLookup.get(timeKey(last.time)) || last);
+            updateRangeBar(last);
+            updateWatermark();
 
-            renderSR(); renderSignalMarkers(); renderDrawings(); renderAlertLines(); refreshOverlays();
+            renderSR(); renderSignalMarkers(); loadDrawingsForTicker(); renderAlertLines(); refreshOverlays();
             renderAdvisor(); renderSignalsTable(); renderAlerts(); runBacktest();
             checkAlerts(currentTicker, last.close);
 
@@ -963,45 +1152,17 @@
     }
 
     async function refreshWatchlist() {
-        const body = document.getElementById('wl-body');
         try {
             const prices = await fetchPrices(TICKERS);
             lastPrices = prices;
-            body.innerHTML = '';
-            for (const p of prices) {
-                const el = document.createElement('div');
-                el.className = 'wl-item' + (p.ticker === currentTicker ? ' active' : '');
-                el.dataset.ticker = p.ticker;
-                const chg = p.change != null ? parseFloat(p.change) : null;
-                const col = chg != null ? (chg >= 0 ? '#26a69a' : '#ef5350') : '#787b86';
-                const cs = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
-
-                const info = document.createElement('div'); info.className = 'wl-info';
-                const tkDiv = document.createElement('div'); tkDiv.className = 'wl-ticker'; tkDiv.textContent = p.ticker;
-                const nmDiv = document.createElement('div'); nmDiv.className = 'wl-name'; nmDiv.textContent = p.shortname;
-                info.append(tkDiv, nmDiv);
-
-                const spark = document.createElement('canvas'); spark.className = 'wl-spark';
-                spark.width = 48; spark.height = 22; spark.dataset.ticker = p.ticker;
-
-                const right = document.createElement('div'); right.className = 'wl-right';
-                const prDiv = document.createElement('div'); prDiv.className = 'wl-price'; prDiv.textContent = p.last.toFixed(2);
-                const chDiv = document.createElement('div'); chDiv.className = 'wl-change'; chDiv.style.color = col; chDiv.textContent = cs;
-                right.append(prDiv, chDiv);
-
-                const del = document.createElement('button'); del.className = 'wl-del'; del.textContent = '✕';
-                del.onclick = (ev) => { ev.stopPropagation(); removeTickerFromWatchlist(p.ticker); };
-
-                el.append(info, spark, right, del);
-                el.onclick = () => selectTicker(p.ticker);
-                body.appendChild(el);
-                if (sparkCache[p.ticker]) drawSparkline(spark, sparkCache[p.ticker]);
-                if (p.ticker === currentTicker) checkAlerts(currentTicker, p.last);
-            }
+            renderWatchlist();
             updateTickerTape(prices);
             updateTreemap(prices);
             updateScreener(prices);
+            const cur = prices.find(p => p.ticker === currentTicker);
+            if (cur) checkAlerts(currentTicker, cur.last);
         } catch {
+            const body = document.getElementById('wl-body');
             if (!body.children.length) {
                 TICKERS.forEach(t => {
                     const el = document.createElement('div');
@@ -1017,6 +1178,45 @@
         }
     }
 
+    function renderWatchlist() {
+        const body = document.getElementById('wl-body');
+        const prices = lastPrices.slice();
+        if (wlSort === 'change') prices.sort((a, b) => (parseFloat(b.change) || 0) - (parseFloat(a.change) || 0));
+        else if (wlSort === 'volume') prices.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+        const maxVol = Math.max(...prices.map(p => p.volume || 0), 1);
+        body.innerHTML = '';
+        for (const p of prices) {
+            const el = document.createElement('div');
+            el.className = 'wl-item' + (p.ticker === currentTicker ? ' active' : '');
+            el.dataset.ticker = p.ticker;
+            const chg = p.change != null ? parseFloat(p.change) : null;
+            const cs = chg != null ? (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%' : '—';
+
+            const info = document.createElement('div'); info.className = 'wl-info';
+            const tkDiv = document.createElement('div'); tkDiv.className = 'wl-ticker'; tkDiv.textContent = p.ticker;
+            const nmDiv = document.createElement('div'); nmDiv.className = 'wl-name'; nmDiv.textContent = p.shortname;
+            info.append(tkDiv, nmDiv);
+
+            const spark = document.createElement('canvas'); spark.className = 'wl-spark';
+            spark.width = 64; spark.height = 28; spark.dataset.ticker = p.ticker;
+
+            const right = document.createElement('div'); right.className = 'wl-right';
+            const prDiv = document.createElement('div'); prDiv.className = 'wl-price'; prDiv.textContent = p.last.toFixed(2);
+            const chDiv = document.createElement('div'); chDiv.className = 'wl-change ' + (chg != null && chg >= 0 ? 'up' : chg != null ? 'down' : ''); chDiv.textContent = cs;
+            right.append(prDiv, chDiv);
+
+            const del = document.createElement('button'); del.className = 'wl-del'; del.textContent = '✕';
+            del.onclick = (ev) => { ev.stopPropagation(); removeTickerFromWatchlist(p.ticker); };
+
+            const vb = document.createElement('div'); vb.className = 'wl-volbar'; vb.style.width = ((p.volume || 0) / maxVol * 100).toFixed(0) + '%';
+
+            el.append(info, spark, right, del, vb);
+            el.onclick = () => selectTicker(p.ticker);
+            body.appendChild(el);
+            if (sparkCache[p.ticker]) drawSparkline(spark, sparkCache[p.ticker]);
+        }
+    }
+
     // ---- Depth Chart (ECharts) ----
     function initDepthChart() {
         if (!hasECharts) return;
@@ -1029,7 +1229,12 @@
     function updateDepthChart(bids, asks) {
         if (!depthEChart) return;
         if (!bids.length && !asks.length) {
-            depthEChart.setOption({ series: [{ data: [] }, { data: [] }] }, true);
+            depthEChart.setOption({
+                backgroundColor: 'transparent',
+                title: { text: '🕒 Торги закрыты', subtext: 'Стакан доступен\nв часы торгов МОЕХ', left: 'center', top: 'center',
+                    textStyle: { color: '#6b7280', fontSize: 13 }, subtextStyle: { color: '#4b5563', fontSize: 10 } },
+                xAxis: { show: false }, yAxis: { show: false }, series: [],
+            }, true);
             return;
         }
         const bidData = [];
@@ -1161,25 +1366,33 @@
     }
 
     // ---- Ticker Tape ----
+    document.getElementById('ticker-tape').addEventListener('click', e => {
+        const item = e.target.closest('.tape-item');
+        if (item && item.dataset.ticker) {
+            if (!TICKERS.includes(item.dataset.ticker)) addTickerToWatchlist(item.dataset.ticker);
+            else selectTicker(item.dataset.ticker);
+        }
+    });
     function updateTickerTape(prices) {
         const track = document.getElementById('tape-track');
         if (!prices || !prices.length) return;
         track.innerHTML = '';
-        const fragment = document.createDocumentFragment();
-        for (const p of prices) {
-            const item = document.createElement('span'); item.className = 'tape-item';
-            const ticker = document.createElement('span'); ticker.className = 'tape-ticker'; ticker.textContent = p.ticker;
-            const price = document.createElement('span'); price.className = 'tape-price'; price.textContent = p.last.toFixed(2);
-            const change = document.createElement('span'); change.className = 'tape-change';
-            const chg = p.change != null ? parseFloat(p.change) : 0;
-            change.style.color = chg >= 0 ? '#26a69a' : '#ef5350';
-            change.textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
-            item.append(ticker, price, change);
-            fragment.appendChild(item);
-        }
-        track.appendChild(fragment);
-        const clone = track.innerHTML;
-        track.innerHTML += clone;
+        const build = () => {
+            const fragment = document.createDocumentFragment();
+            for (const p of prices) {
+                const item = document.createElement('span'); item.className = 'tape-item'; item.dataset.ticker = p.ticker; item.style.cursor = 'pointer';
+                const ticker = document.createElement('span'); ticker.className = 'tape-ticker'; ticker.textContent = p.ticker;
+                const price = document.createElement('span'); price.className = 'tape-price'; price.textContent = p.last.toFixed(2);
+                const chg = p.change != null ? parseFloat(p.change) : 0;
+                const change = document.createElement('span'); change.className = 'tape-change ' + (chg >= 0 ? 'up' : 'down');
+                change.textContent = (chg >= 0 ? '▲' : '▼') + ' ' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+                item.append(ticker, price, change);
+                fragment.appendChild(item);
+            }
+            return fragment;
+        };
+        track.appendChild(build());
+        track.appendChild(build());
     }
 
     // ---- Heatmap / Treemap (ECharts) ----
@@ -1263,6 +1476,7 @@
 
     // ---- Init ----
     initChart();
+    initDrawingTools();
     initDepthChart();
     setTimeout(initGauge, 100);
     loadData();
