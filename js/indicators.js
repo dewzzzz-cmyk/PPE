@@ -168,7 +168,7 @@ export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
     for (const b of bbData.upper) bU.set(tk(b.time), b.value);
     for (const b of bbData.lower) bL.set(tk(b.time), b.value);
 
-    for (let i = 1; i < data.length; i++) {
+    for (let i = 1; i < data.length - 1; i++) {
         const key = tk(data[i].time), pkey = tk(data[i-1].time);
         let buy = 0, sell = 0;
         const reasons = [];

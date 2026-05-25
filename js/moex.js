@@ -1,3 +1,30 @@
+const FETCH_TIMEOUT = 10000;
+const MAX_RETRIES = 2;
+
+async function fetchWithRetry(url) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+        try {
+            const resp = await fetch(url, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return await resp.json();
+        } catch (e) {
+            clearTimeout(timer);
+            if (attempt === MAX_RETRIES) throw e;
+            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        }
+    }
+}
+
+function parseMoscowTime(dateStr) {
+    if (!dateStr) return 0;
+    const clean = dateStr.replace(' ', 'T');
+    if (/[+-]\d{2}:?\d{2}$/.test(clean) || clean.endsWith('Z')) return Math.floor(new Date(clean).getTime() / 1000);
+    return Math.floor(new Date(clean + '+03:00').getTime() / 1000);
+}
+
 export async function fetchCandles(ticker, interval, days) {
     const end = new Date().toISOString().slice(0, 10);
     const start = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
@@ -6,8 +33,7 @@ export async function fetchCandles(ticker, interval, days) {
 
     while (true) {
         const url = `${base}/${ticker}/candles.json?from=${start}&till=${end}&interval=${interval}&start=${cursor}&iss.meta=off`;
-        const resp = await fetch(url);
-        const data = await resp.json();
+        const data = await fetchWithRetry(url);
         const rows = data.candles.data;
         if (!rows.length) break;
         allRows = allRows.concat(rows);
@@ -18,15 +44,14 @@ export async function fetchCandles(ticker, interval, days) {
     return allRows.map(r => ({
         time: interval === 24 || interval === 7 || interval === 31
             ? r[6].slice(0, 10)
-            : Math.floor(new Date(r[6]).getTime() / 1000),
+            : parseMoscowTime(r[6]),
         open: r[0], close: r[1], high: r[2], low: r[3], volume: r[5],
     }));
 }
 
 export async function fetchPrices(tickers) {
     const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities.json?securities=${tickers.join(',')}&iss.meta=off&iss.only=securities,marketdata`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+    const data = await fetchWithRetry(url);
     const secCols = data.securities.columns;
     const mktCols = data.marketdata.columns;
     const ci = (cols, name) => cols.indexOf(name);
@@ -56,8 +81,7 @@ export async function fetchPrices(tickers) {
 
 export async function fetchOrderBook(ticker) {
     const url = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${ticker}/orderbook.json?iss.meta=off`;
-    const resp = await fetch(url);
-    const data = await resp.json();
+    const data = await fetchWithRetry(url);
     const cols = data.orderbook.columns;
     const ci = (name) => cols.indexOf(name);
     const bids = [], asks = [];
