@@ -224,6 +224,66 @@ def _dark_layout() -> dict:
     }
 
 
+def build_candlestick_chart(df: pd.DataFrame, ticker: str) -> go.Figure:
+    """Plotly candlestick chart (used by main dashboard callbacks)."""
+    from plotly.subplots import make_subplots
+
+    fig = make_subplots(
+        rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03,
+        row_heights=[0.6, 0.2, 0.2], subplot_titles=(ticker, "Volume", "RSI"),
+    )
+
+    fig.add_trace(go.Candlestick(
+        x=df["datetime"], open=df["open"], high=df["high"], low=df["low"], close=df["close"],
+        name="OHLC", increasing_line_color="#26a69a", decreasing_line_color="#ef5350",
+    ), row=1, col=1)
+
+    if "sma20" in df.columns:
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["sma20"], name="SMA 20",
+                                 line=dict(color="#ff9800", width=1)), row=1, col=1)
+    if "sma50" in df.columns:
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["sma50"], name="SMA 50",
+                                 line=dict(color="#2196f3", width=1)), row=1, col=1)
+    if "bb_upper" in df.columns:
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["bb_upper"], name="BB+",
+                                 line=dict(color="#9c27b0", width=1, dash="dash"), showlegend=False), row=1, col=1)
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["bb_lower"], name="BB-",
+                                 line=dict(color="#9c27b0", width=1, dash="dash"),
+                                 fill="tonexty", fillcolor="rgba(156,39,176,0.05)", showlegend=False), row=1, col=1)
+
+    if "signal" in df.columns:
+        buys = df[df["signal"] == "BUY"]
+        sells = df[df["signal"] == "SELL"]
+        if not buys.empty:
+            fig.add_trace(go.Scatter(x=buys["datetime"], y=buys["low"] * 0.998, mode="markers", name="BUY",
+                                     marker=dict(symbol="triangle-up", size=12, color="#26a69a")), row=1, col=1)
+        if not sells.empty:
+            fig.add_trace(go.Scatter(x=sells["datetime"], y=sells["high"] * 1.002, mode="markers", name="SELL",
+                                     marker=dict(symbol="triangle-down", size=12, color="#ef5350")), row=1, col=1)
+
+    colors = ["#26a69a" if c >= o else "#ef5350" for c, o in zip(df["close"], df["open"])]
+    fig.add_trace(go.Bar(x=df["datetime"], y=df["volume"], name="Vol", marker_color=colors, showlegend=False), row=2, col=1)
+    if "vol_sma20" in df.columns:
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["vol_sma20"], name="Vol SMA",
+                                 line=dict(color="#ff9800", width=1), showlegend=False), row=2, col=1)
+
+    if "rsi" in df.columns:
+        fig.add_trace(go.Scatter(x=df["datetime"], y=df["rsi"], name="RSI",
+                                 line=dict(color="#7c4dff", width=1.5)), row=3, col=1)
+        fig.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.5, row=3, col=1)
+        fig.add_hline(y=30, line_dash="dash", line_color="green", opacity=0.5, row=3, col=1)
+
+    fig.update_layout(
+        **_dark_layout(), height=750,
+        xaxis_rangeslider_visible=False, xaxis3_rangeslider_visible=False,
+    )
+    fig.update_yaxes(gridcolor="#2a2e39")
+    fig.update_xaxes(gridcolor="#2a2e39")
+    fig.update_yaxes(range=[0, 100], row=3, col=1)
+
+    return fig
+
+
 def _empty_chart_props() -> dict:
     return {
         "seriesData": [[{"time": "2026-01-01", "open": 0, "high": 0, "low": 0, "close": 0}]],
