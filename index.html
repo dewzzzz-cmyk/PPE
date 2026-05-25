@@ -183,6 +183,9 @@
         .gutter.gutter-vertical { cursor: row-resize; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="2"><rect fill="%232962ff40" width="20" height="2" rx="1"/></svg>'); }
 
         #chart-container.draw-active { cursor: crosshair; }
+        #chart-container.draw-active::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #2962ff; pointer-events: none; z-index: 10; animation: drawPulse 1.5s infinite; }
+        @keyframes drawPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        #status.draw-active { color: #2962ff; }
 
         /* Drawing toolbar dropdown */
         .draw-wrap { position: relative; }
@@ -373,8 +376,11 @@
         if (drawManager) drawManager.setActiveTool(null);
         document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
-        document.getElementById('draw-btn').classList.remove('active');
+        const drawBtn = document.getElementById('draw-btn');
+        drawBtn.classList.remove('active');
+        drawBtn.title = 'Инструменты рисования';
         document.getElementById('chart-container').classList.remove('draw-active');
+        document.getElementById('status').classList.remove('draw-active');
         if (msg) setStatus(msg);
     }
 
@@ -628,7 +634,8 @@
                 const drawing = toolRegistry.createDrawing(activeDrawTool, id, pendingAnchors.slice(), { lineColor: '#2962ff', lineWidth: 2 });
                 if (drawing) drawManager.addDrawing(drawing);
                 const name = def ? def.name : activeDrawTool;
-                exitDrawMode(`${name} добавлен`);
+                pendingAnchors = [];
+                setStatus(`${name} добавлен · кликните снова или Esc для выхода`);
             } else {
                 setStatus(`${def ? def.name : activeDrawTool}: точка ${pendingAnchors.length}/${need}, кликните ещё`);
             }
@@ -650,7 +657,7 @@
                 const ic = document.createElement('span'); ic.className = 'di'; ic.textContent = DRAW_ICONS[t.type] || '◆';
                 const lbl = document.createElement('span'); lbl.textContent = t.name;
                 btn.append(ic, lbl);
-                btn.onclick = () => { activateDrawTool(t.type); panel.classList.remove('show'); };
+                btn.onclick = () => { activateDrawTool(t.type); };
                 grid.appendChild(btn);
             }
             panel.appendChild(grid);
@@ -671,11 +678,14 @@
         activeDrawTool = type;
         pendingAnchors = [];
         drawManager.setActiveTool(type);
-        document.getElementById('draw-btn').classList.add('active');
+        const def = toolRegistry.get(type);
+        const drawBtn = document.getElementById('draw-btn');
+        drawBtn.classList.add('active');
+        drawBtn.title = def ? def.name : type;
         document.querySelectorAll('.draw-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === type));
         document.getElementById('chart-container').classList.add('draw-active');
-        const def = toolRegistry.get(type);
-        setStatus(`${def ? def.name : type}: кликните на графике (нужно точек: ${def ? def.requiredAnchors : 2})`);
+        document.getElementById('status').classList.add('draw-active');
+        setStatus(`✏ ${def ? def.name : type}: кликните на графике (точек: ${def ? def.requiredAnchors : 2}) · Esc = выход`);
     }
 
     function saveDrawings() {
