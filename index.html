@@ -4,111 +4,297 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOEX Trading Terminal</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 6px 16px;
-            background: #1e222d;
-            border-bottom: 1px solid #2a2e39;
+        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #d1d4dc; overflow: hidden; }
+
+        .toolbar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 6px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39;
         }
-        .header h1 { color: #d1d4dc; font-size: 15px; font-weight: 500; }
-        .tickers { display: flex; gap: 4px; flex-wrap: wrap; }
+        .toolbar h1 { font-size: 14px; font-weight: 600; color: #787b86; white-space: nowrap; }
+        .tickers { display: flex; gap: 3px; flex-wrap: wrap; }
         .tickers button {
-            background: #2a2e39;
-            color: #d1d4dc;
-            border: 1px solid #363a45;
-            padding: 3px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.15s;
+            background: #2a2e39; color: #d1d4dc; border: 1px solid #363a45;
+            padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
         }
         .tickers button:hover { background: #363a45; }
         .tickers button.active { background: #2962ff; border-color: #2962ff; color: #fff; }
-        .chart-wrap { width: 100%; height: calc(100vh - 38px); }
+
+        .timeframes { display: flex; gap: 2px; margin-left: 8px; }
+        .timeframes button {
+            background: transparent; color: #787b86; border: none;
+            padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;
+        }
+        .timeframes button:hover { color: #d1d4dc; }
+        .timeframes button.active { color: #2962ff; background: rgba(41,98,255,0.1); }
+
+        .info-bar {
+            display: flex; align-items: center; gap: 16px;
+            padding: 4px 12px; background: #1e222d; border-bottom: 1px solid #2a2e39; font-size: 12px;
+        }
+        .info-bar .ticker-name { font-size: 16px; font-weight: 600; color: #d1d4dc; }
+        .info-bar .price { font-size: 15px; font-weight: 600; }
+        .info-bar .change { font-size: 12px; font-weight: 500; }
+        .info-bar .label { color: #787b86; }
+        .info-bar .val { color: #d1d4dc; margin-left: 4px; }
+        .green { color: #26a69a; }
+        .red { color: #ef5350; }
+
+        #chart-container { width: 100%; height: calc(100vh - 76px); }
+        #volume-container { width: 100%; height: 80px; }
+
+        .status { position: fixed; bottom: 8px; right: 12px; font-size: 11px; color: #787b86; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>MOEX Trading</h1>
+    <div class="toolbar">
+        <h1>MOEX</h1>
         <div class="tickers" id="ticker-bar"></div>
+        <div class="timeframes" id="tf-bar"></div>
     </div>
-    <div class="chart-wrap" id="chart-wrap"></div>
+    <div class="info-bar" id="info-bar">
+        <span class="ticker-name" id="info-ticker">SBER</span>
+        <span class="price" id="info-price">—</span>
+        <span class="change" id="info-change">—</span>
+        <span><span class="label">O</span><span class="val" id="info-o">—</span></span>
+        <span><span class="label">H</span><span class="val" id="info-h">—</span></span>
+        <span><span class="label">L</span><span class="val" id="info-l">—</span></span>
+        <span><span class="label">C</span><span class="val" id="info-c">—</span></span>
+        <span><span class="label">Vol</span><span class="val" id="info-v">—</span></span>
+    </div>
+    <div id="chart-container"></div>
+    <div class="status" id="status">Загрузка...</div>
 
     <script>
-        const tickers = [
-            { label: 'SBER', symbol: 'MOEX:SBER' },
-            { label: 'GAZP', symbol: 'MOEX:GAZP' },
-            { label: 'LKOH', symbol: 'MOEX:LKOH' },
-            { label: 'YNDX', symbol: 'MOEX:YNDX' },
-            { label: 'GMKN', symbol: 'MOEX:GMKN' },
-            { label: 'ROSN', symbol: 'MOEX:ROSN' },
-            { label: 'NVTK', symbol: 'MOEX:NVTK' },
-            { label: 'MTSS', symbol: 'MOEX:MTSS' },
-            { label: 'MGNT', symbol: 'MOEX:MGNT' },
-            { label: 'PLZL', symbol: 'MOEX:PLZL' },
-            { label: 'IMOEX', symbol: 'MOEX:IMOEX' },
-        ];
+    const TICKERS = ['SBER','GAZP','LKOH','YNDX','GMKN','ROSN','NVTK','MTSS','MGNT','PLZL'];
+    const TIMEFRAMES = [
+        { label: '1ч', interval: 60, days: 90 },
+        { label: '1д', interval: 24, days: 365 },
+        { label: '1н', interval: 7, days: 730 },
+        { label: '1мес', interval: 31, days: 1825 },
+    ];
 
-        const bar = document.getElementById('ticker-bar');
-        tickers.forEach((t, i) => {
-            const btn = document.createElement('button');
-            btn.textContent = t.label;
-            btn.dataset.symbol = t.symbol;
-            if (i === 0) btn.classList.add('active');
-            btn.onclick = () => {
-                bar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                loadChart(t.symbol);
-            };
-            bar.appendChild(btn);
+    let currentTicker = 'SBER';
+    let currentTF = TIMEFRAMES[0];
+    let chart, candleSeries, volumeSeries, sma20Series, sma50Series, bb1Series, bb2Series;
+
+    // --- UI setup ---
+    const tickerBar = document.getElementById('ticker-bar');
+    TICKERS.forEach((t, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = t;
+        if (i === 0) btn.classList.add('active');
+        btn.onclick = () => {
+            tickerBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTicker = t;
+            loadData();
+        };
+        tickerBar.appendChild(btn);
+    });
+
+    const tfBar = document.getElementById('tf-bar');
+    TIMEFRAMES.forEach((tf, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = tf.label;
+        if (i === 0) btn.classList.add('active');
+        btn.onclick = () => {
+            tfBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTF = tf;
+            loadData();
+        };
+        tfBar.appendChild(btn);
+    });
+
+    // --- Chart setup ---
+    function createChart() {
+        const container = document.getElementById('chart-container');
+        container.innerHTML = '';
+
+        chart = LightweightCharts.createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight,
+            layout: {
+                background: { type: 'solid', color: '#131722' },
+                textColor: '#d1d4dc',
+            },
+            grid: {
+                vertLines: { color: '#1e222d' },
+                horzLines: { color: '#1e222d' },
+            },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+                vertLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
+                horzLine: { color: '#758696', width: 1, style: 3, labelBackgroundColor: '#2a2e39' },
+            },
+            rightPriceScale: {
+                borderColor: '#2a2e39',
+                scaleMargins: { top: 0.1, bottom: 0.25 },
+            },
+            timeScale: {
+                borderColor: '#2a2e39',
+                timeVisible: true,
+                secondsVisible: false,
+            },
         });
 
-        function loadChart(symbol) {
-            const wrap = document.getElementById('chart-wrap');
-            wrap.innerHTML = '';
+        candleSeries = chart.addCandlestickSeries({
+            upColor: '#26a69a', downColor: '#ef5350',
+            borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+            wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+        });
 
-            const container = document.createElement('div');
-            container.className = 'tradingview-widget-container';
-            container.style.height = '100%';
-            container.style.width = '100%';
+        volumeSeries = chart.addHistogramSeries({
+            priceFormat: { type: 'volume' },
+            priceScaleId: 'vol',
+        });
+        chart.priceScale('vol').applyOptions({
+            scaleMargins: { top: 0.85, bottom: 0 },
+        });
 
-            const inner = document.createElement('div');
-            inner.className = 'tradingview-widget-container__widget';
-            inner.style.height = 'calc(100% - 32px)';
-            inner.style.width = '100%';
-            container.appendChild(inner);
+        sma20Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        sma50Series = chart.addLineSeries({ color: '#2196f3', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        bb1Series = chart.addLineSeries({ color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        bb2Series = chart.addLineSeries({ color: 'rgba(156,39,176,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
 
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-            script.async = true;
-            script.textContent = JSON.stringify({
-                "autosize": true,
-                "symbol": symbol,
-                "interval": "60",
-                "timezone": "Europe/Moscow",
-                "theme": "dark",
-                "style": "1",
-                "locale": "ru",
-                "allow_symbol_change": true,
-                "details": true,
-                "hotlist": true,
-                "calendar": false,
-                "hide_side_toolbar": false,
-                "withdateranges": true,
-                "support_host": "https://www.tradingview.com"
-            });
-            container.appendChild(script);
+        // Crosshair move → update info bar
+        chart.subscribeCrosshairMove(param => {
+            if (!param || !param.time) return;
+            const candle = param.seriesData.get(candleSeries);
+            const vol = param.seriesData.get(volumeSeries);
+            if (candle) {
+                document.getElementById('info-o').textContent = candle.open.toFixed(2);
+                document.getElementById('info-h').textContent = candle.high.toFixed(2);
+                document.getElementById('info-l').textContent = candle.low.toFixed(2);
+                document.getElementById('info-c').textContent = candle.close.toFixed(2);
+            }
+            if (vol) {
+                document.getElementById('info-v').textContent = formatVol(vol.value);
+            }
+        });
 
-            wrap.appendChild(container);
+        window.addEventListener('resize', () => {
+            chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+        });
+    }
+
+    // --- Data fetching from MOEX ISS ---
+    async function fetchMOEX(ticker, interval, days) {
+        const end = new Date().toISOString().slice(0, 10);
+        const start = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+        const base = 'https://iss.moex.com/iss/engines/stock/markets/shares/securities';
+        let allRows = [];
+        let cursor = 0;
+
+        while (true) {
+            const url = `${base}/${ticker}/candles.json?from=${start}&till=${end}&interval=${interval}&start=${cursor}&iss.meta=off`;
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const rows = data.candles.data;
+            if (!rows.length) break;
+            allRows = allRows.concat(rows);
+            cursor += rows.length;
+            if (rows.length < 500) break;
         }
 
-        loadChart('MOEX:SBER');
+        return allRows.map(r => ({
+            time: interval === 24 || interval === 7 || interval === 31
+                ? r[6].slice(0, 10)
+                : Math.floor(new Date(r[6]).getTime() / 1000),
+            open: r[0], close: r[1], high: r[2], low: r[3], volume: r[5],
+        }));
+    }
+
+    // --- Indicators ---
+    function calcSMA(data, period) {
+        const result = [];
+        for (let i = period - 1; i < data.length; i++) {
+            let sum = 0;
+            for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
+            result.push({ time: data[i].time, value: sum / period });
+        }
+        return result;
+    }
+
+    function calcBB(data, period, mult) {
+        const upper = [], lower = [];
+        for (let i = period - 1; i < data.length; i++) {
+            let sum = 0;
+            for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
+            const mean = sum / period;
+            let sqSum = 0;
+            for (let j = i - period + 1; j <= i; j++) sqSum += (data[j].close - mean) ** 2;
+            const std = Math.sqrt(sqSum / period);
+            upper.push({ time: data[i].time, value: mean + mult * std });
+            lower.push({ time: data[i].time, value: mean - mult * std });
+        }
+        return { upper, lower };
+    }
+
+    // --- Load & render ---
+    async function loadData() {
+        const status = document.getElementById('status');
+        status.textContent = `Загрузка ${currentTicker}...`;
+        document.getElementById('info-ticker').textContent = currentTicker;
+
+        try {
+            const data = await fetchMOEX(currentTicker, currentTF.interval, currentTF.days);
+
+            if (!data.length) {
+                status.textContent = 'Нет данных';
+                return;
+            }
+
+            const candles = data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
+            const volumes = data.map(d => ({
+                time: d.time,
+                value: d.volume,
+                color: d.close >= d.open ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)',
+            }));
+
+            candleSeries.setData(candles);
+            volumeSeries.setData(volumes);
+            sma20Series.setData(calcSMA(data, 20));
+            sma50Series.setData(calcSMA(data, 50));
+            const bb = calcBB(data, 20, 2);
+            bb1Series.setData(bb.upper);
+            bb2Series.setData(bb.lower);
+
+            // Update info bar with last candle
+            const last = data[data.length - 1];
+            const prev = data.length > 1 ? data[data.length - 2] : last;
+            const change = ((last.close - prev.close) / prev.close * 100).toFixed(2);
+            const priceEl = document.getElementById('info-price');
+            const changeEl = document.getElementById('info-change');
+            priceEl.textContent = last.close.toFixed(2) + ' ₽';
+            priceEl.className = 'price ' + (change >= 0 ? 'green' : 'red');
+            changeEl.textContent = (change >= 0 ? '+' : '') + change + '%';
+            changeEl.className = 'change ' + (change >= 0 ? 'green' : 'red');
+            document.getElementById('info-o').textContent = last.open.toFixed(2);
+            document.getElementById('info-h').textContent = last.high.toFixed(2);
+            document.getElementById('info-l').textContent = last.low.toFixed(2);
+            document.getElementById('info-c').textContent = last.close.toFixed(2);
+            document.getElementById('info-v').textContent = formatVol(last.volume);
+
+            chart.timeScale().fitContent();
+            status.textContent = `${currentTicker} · ${data.length} свечей · ${new Date().toLocaleTimeString('ru')}`;
+        } catch (e) {
+            status.textContent = 'Ошибка загрузки: ' + e.message;
+        }
+    }
+
+    function formatVol(v) {
+        if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+        if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+        return v;
+    }
+
+    // --- Init ---
+    createChart();
+    loadData();
     </script>
 </body>
 </html>
