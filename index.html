@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOEX Trading — TradingView</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #131722; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: #1e222d;
+            border-bottom: 1px solid #2a2e39;
+        }
+        .header h1 { color: #d1d4dc; font-size: 16px; font-weight: 500; }
+        .tickers {
+            display: flex;
+            gap: 6px;
+        }
+        .tickers button {
+            background: #2a2e39;
+            color: #d1d4dc;
+            border: 1px solid #363a45;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .tickers button:hover { background: #363a45; }
+        .tickers button.active { background: #2962ff; border-color: #2962ff; color: #fff; }
+        .chart-container { width: 100%; height: calc(100vh - 42px); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MOEX Trading Dashboard</h1>
+        <div class="tickers">
+            <button class="active" onclick="setTicker('MOEX:SBER', this)">SBER</button>
+            <button onclick="setTicker('MOEX:GAZP', this)">GAZP</button>
+            <button onclick="setTicker('MOEX:LKOH', this)">LKOH</button>
+            <button onclick="setTicker('MOEX:YNDX', this)">YNDX</button>
+            <button onclick="setTicker('MOEX:GMKN', this)">GMKN</button>
+            <button onclick="setTicker('MOEX:ROSN', this)">ROSN</button>
+            <button onclick="setTicker('MOEX:NVTK', this)">NVTK</button>
+            <button onclick="setTicker('MOEX:MTSS', this)">MTSS</button>
+            <button onclick="setTicker('MOEX:MGNT', this)">MGNT</button>
+            <button onclick="setTicker('MOEX:PLZL', this)">PLZL</button>
+        </div>
+    </div>
+    <div class="chart-container" id="chart-container"></div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let widget = null;
+
+        function createWidget(symbol) {
+            document.getElementById('chart-container').innerHTML = '';
+            widget = new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "60",
+                "timezone": "Europe/Moscow",
+                "theme": "dark",
+                "style": "1",
+                "locale": "ru",
+                "toolbar_bg": "#1e222d",
+                "enable_publishing": false,
+                "allow_symbol_change": true,
+                "details": true,
+                "hotlist": true,
+                "calendar": false,
+                "studies": ["RSI@tv-basicstudies", "MACD@tv-basicstudies", "BB@tv-basicstudies"],
+                "container_id": "chart-container",
+                "hide_side_toolbar": false,
+                "withdateranges": true,
+                "save_image": true,
+                "show_popup_button": true,
+                "popup_width": "1000",
+                "popup_height": "650",
+            });
+        }
+
+        function setTicker(symbol, btn) {
+            document.querySelectorAll('.tickers button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            createWidget(symbol);
+        }
+
+        createWidget('MOEX:SBER');
+    </script>
+</body>
+</html>
