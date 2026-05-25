@@ -28,7 +28,10 @@ def update_chart(ticker, interval, period_days, _btn, _n):
     start = (dt.date.today() - dt.timedelta(days=period_days)).isoformat()
     end = dt.date.today().isoformat()
 
-    df = fetch_candles(ticker, interval=interval, start=start, end=end)
+    try:
+        df = fetch_candles(ticker, interval=interval, start=start, end=end)
+    except Exception:
+        df = pd.DataFrame()
 
     if df.empty:
         import plotly.graph_objects as go
