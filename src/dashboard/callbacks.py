@@ -113,7 +113,8 @@ def update_prices(_n, _btn):
             ])),
             html.Tbody(rows),
         ],
-        bordered=False, dark=True, hover=True, size="sm",
+        bordered=False, hover=True, size="sm",
+        className="table-dark",
         style={"backgroundColor": "#1e1e2f"},
     )
     return table
