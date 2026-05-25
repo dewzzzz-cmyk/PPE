@@ -79,6 +79,49 @@ export async function fetchPrices(tickers) {
     return result;
 }
 
+export async function searchSecurities(query) {
+    const url = `https://iss.moex.com/iss/securities.json?q=${encodeURIComponent(query)}&iss.meta=off&limit=15`;
+    const data = await fetchWithRetry(url);
+    const cols = data.securities.columns;
+    const ci = (n) => cols.indexOf(n);
+    const results = [];
+    for (const r of data.securities.data) {
+        if (r[ci('is_traded')] !== 1) continue;
+        results.push({
+            secid: r[ci('secid')],
+            shortname: r[ci('shortname')] || r[ci('secid')],
+            engine: r[ci('engine')] || 'stock',
+            market: r[ci('market')] || 'shares',
+            board: r[ci('primary_boardid')] || '',
+        });
+    }
+    return results;
+}
+
+export async function fetchOverlayCandles(sec, interval, days) {
+    const end = new Date().toISOString().slice(0, 10);
+    const start = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    const base = `https://iss.moex.com/iss/engines/${sec.engine}/markets/${sec.market}/boards/${sec.board}/securities`;
+    let allRows = [], cursor = 0;
+
+    while (true) {
+        const url = `${base}/${sec.secid}/candles.json?from=${start}&till=${end}&interval=${interval}&start=${cursor}&iss.meta=off`;
+        const data = await fetchWithRetry(url);
+        const rows = data.candles.data;
+        if (!rows.length) break;
+        allRows = allRows.concat(rows);
+        cursor += rows.length;
+        if (rows.length < 500) break;
+    }
+
+    return allRows.map(r => ({
+        time: interval === 24 || interval === 7 || interval === 31
+            ? r[6].slice(0, 10)
+            : parseMoscowTime(r[6]),
+        value: r[1],
+    }));
+}
+
 export async function fetchOrderBook(ticker) {
     const url = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${ticker}/orderbook.json?iss.meta=off`;
     const data = await fetchWithRetry(url);

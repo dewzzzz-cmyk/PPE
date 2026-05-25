@@ -111,6 +111,21 @@
         .ob-vol { color: #787b86; }
         .ob-spread { padding: 4px 8px; font-size: 11px; color: #787b86; text-align: center; border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39; background: #1e222d; }
 
+        /* Overlay panel */
+        .overlay-wrap { position: relative; }
+        .overlay-panel { display: none; position: absolute; top: 100%; right: 0; background: #1e222d; border: 1px solid #363a45; border-radius: 4px; padding: 8px; z-index: 100; width: 260px; }
+        .overlay-panel.show { display: block; }
+        #overlay-search { background: #2a2e39; border: 1px solid #363a45; color: #d1d4dc; padding: 4px 8px; border-radius: 4px; font-size: 12px; width: 100%; outline: none; margin-bottom: 4px; }
+        #overlay-search:focus { border-color: #2962ff; }
+        .overlay-results { max-height: 150px; overflow-y: auto; }
+        .overlay-result { padding: 4px 8px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; border-radius: 3px; }
+        .overlay-result:hover { background: #2a2e39; }
+        .overlay-result .or-info { color: #787b86; font-size: 10px; }
+        .overlay-active { margin-top: 4px; border-top: 1px solid #2a2e39; padding-top: 4px; }
+        .overlay-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin: 2px; background: #2a2e39; }
+        .overlay-tag .ot-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .overlay-tag .ot-remove { cursor: pointer; color: #ef5350; font-size: 13px; margin-left: 4px; }
+
         /* Draw mode cursor */
         #chart-container.draw-active { cursor: crosshair; }
 
@@ -156,6 +171,14 @@
                 <label class="toggle-lbl"><input type="checkbox" id="sig-toggle" checked> Сигналы</label>
                 <label class="toggle-lbl"><input type="checkbox" id="sr-toggle" checked> S/R</label>
                 <div class="vsep"></div>
+                <div class="overlay-wrap">
+                    <button class="icon-btn" id="overlay-btn" title="Оверлей">Оверлей</button>
+                    <div class="overlay-panel" id="overlay-panel">
+                        <input type="text" id="overlay-search" placeholder="USD, Brent, IMOEX..." autocomplete="off">
+                        <div class="overlay-results" id="overlay-results"></div>
+                        <div class="overlay-active" id="overlay-active"></div>
+                    </div>
+                </div>
                 <button class="icon-btn" id="ob-toggle" title="Стакан">Стакан</button>
             </div>
             <div class="info-bar">
@@ -196,7 +219,7 @@
 
     <script type="module">
     import { calcSMA, calcBB, calcRSI, calcMACD, calcATR, detectPatterns, findSR, generateSignals, timeKey } from './js/indicators.js';
-    import { fetchCandles, fetchPrices, fetchOrderBook } from './js/moex.js';
+    import { fetchCandles, fetchPrices, fetchOrderBook, fetchOverlayCandles, searchSecurities } from './js/moex.js';
     import { loadAlerts, addAlert, removeAlert, checkAlerts, requestPermission } from './js/alerts.js';
 
     const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = LightweightCharts;
@@ -211,6 +234,10 @@
         { label: '1н', interval: 7, days: 730 },
         { label: '1мес', interval: 31, days: 1825 },
     ];
+
+    const OVERLAY_COLORS = ['#e040fb', '#00e5ff', '#ffab40', '#69f0ae', '#ff5252'];
+    let overlayItems = [];
+    let overlaySeries = {};
 
     let currentTicker = 'SBER', currentTF = TIMEFRAMES[2];
     let dataLookup = new Map();
@@ -558,6 +585,91 @@
         refreshWatchlist();
     }
 
+    // ---- Overlay ----
+    const overlayBtn = document.getElementById('overlay-btn');
+    const overlayPanel = document.getElementById('overlay-panel');
+    const overlaySearchInput = document.getElementById('overlay-search');
+    const overlayResultsEl = document.getElementById('overlay-results');
+    const overlayActiveEl = document.getElementById('overlay-active');
+    let overlaySearchTimer = null;
+
+    overlayBtn.onclick = () => { overlayPanel.classList.toggle('show'); if (overlayPanel.classList.contains('show')) overlaySearchInput.focus(); };
+    document.addEventListener('click', e => { if (!e.target.closest('.overlay-wrap')) overlayPanel.classList.remove('show'); });
+
+    overlaySearchInput.addEventListener('input', () => {
+        clearTimeout(overlaySearchTimer);
+        const q = overlaySearchInput.value.trim();
+        if (q.length < 2) { overlayResultsEl.innerHTML = ''; return; }
+        overlaySearchTimer = setTimeout(async () => {
+            try {
+                const results = await searchSecurities(q);
+                overlayResultsEl.innerHTML = '';
+                for (const sec of results) {
+                    if (overlayItems.find(o => o.secid === sec.secid)) continue;
+                    const div = document.createElement('div');
+                    div.className = 'overlay-result';
+                    const name = document.createElement('span'); name.textContent = `${sec.secid} — ${sec.shortname}`;
+                    const info = document.createElement('span'); info.className = 'or-info'; info.textContent = `${sec.engine}/${sec.market}`;
+                    div.append(name, info);
+                    div.onclick = () => { addOverlay(sec); overlaySearchInput.value = ''; overlayResultsEl.innerHTML = ''; };
+                    overlayResultsEl.appendChild(div);
+                }
+            } catch {}
+        }, 300);
+    });
+
+    function addOverlay(sec) {
+        if (overlayItems.find(o => o.secid === sec.secid)) return;
+        if (overlayItems.length >= 5) return;
+        const color = OVERLAY_COLORS[overlayItems.length % OVERLAY_COLORS.length];
+        const item = { ...sec, color };
+        overlayItems.push(item);
+        renderOverlayTags();
+        loadOverlayData(item);
+    }
+
+    function removeOverlay(secid) {
+        overlayItems = overlayItems.filter(o => o.secid !== secid);
+        if (overlaySeries[secid]) { try { chart.removeSeries(overlaySeries[secid]); } catch {} delete overlaySeries[secid]; }
+        renderOverlayTags();
+    }
+
+    function renderOverlayTags() {
+        overlayActiveEl.innerHTML = '';
+        if (!overlayItems.length) { overlayActiveEl.innerHTML = '<span class="muted" style="font-size:11px">Нет оверлеев</span>'; return; }
+        for (const item of overlayItems) {
+            const tag = document.createElement('span');
+            tag.className = 'overlay-tag';
+            const dot = document.createElement('span'); dot.className = 'ot-dot'; dot.style.background = item.color;
+            const label = document.createElement('span'); label.textContent = item.secid;
+            const rm = document.createElement('span'); rm.className = 'ot-remove'; rm.textContent = '✕';
+            rm.onclick = () => removeOverlay(item.secid);
+            tag.append(dot, label, rm);
+            overlayActiveEl.appendChild(tag);
+        }
+    }
+
+    async function loadOverlayData(item) {
+        try {
+            const data = await fetchOverlayCandles(item, currentTF.interval, currentTF.days);
+            if (!data.length) return;
+            if (overlaySeries[item.secid]) { try { chart.removeSeries(overlaySeries[item.secid]); } catch {} }
+            const s = chart.addSeries(LineSeries, {
+                color: item.color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true,
+                priceScaleId: 'overlay-' + item.secid, title: item.secid,
+            }, 0);
+            chart.priceScale('overlay-' + item.secid).applyOptions({ scaleMargins: { top: 0.05, bottom: 0.15 }, borderVisible: false, drawTicks: false });
+            s.setData(data);
+            overlaySeries[item.secid] = s;
+        } catch (e) { setStatus(`Оверлей ${item.secid}: ошибка загрузки`); }
+    }
+
+    async function refreshOverlays() {
+        for (const item of overlayItems) await loadOverlayData(item);
+    }
+
+    renderOverlayTags();
+
     // ---- Backtest ----
     function runBacktest() {
         const body = document.getElementById('backtest-body');
@@ -659,7 +771,7 @@
             ce.textContent = (chg >= 0 ? '+' : '') + chg + '%'; ce.className = 'change ' + (chg >= 0 ? 'green' : 'red');
             updateInfo(dataLookup.get(timeKey(last.time)) || last);
 
-            renderSR(); renderSignalMarkers(); renderDrawings(); renderAlertLines();
+            renderSR(); renderSignalMarkers(); renderDrawings(); renderAlertLines(); refreshOverlays();
             renderAdvisor(); renderSignalsTable(); renderAlerts(); runBacktest();
             checkAlerts(currentTicker, last.close);
 
