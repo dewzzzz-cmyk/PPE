@@ -110,6 +110,26 @@
         .ob-price, .ob-vol { z-index: 1; }
         .ob-vol { color: #787b86; }
         .ob-spread { padding: 4px 8px; font-size: 11px; color: #787b86; text-align: center; border-top: 1px solid #2a2e39; border-bottom: 1px solid #2a2e39; background: #1e222d; }
+
+        /* Draw mode cursor */
+        #chart-container.draw-active { cursor: crosshair; }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .watchlist { width: 0; border-right: none; }
+            .watchlist:not(.collapsed) { width: 160px; position: absolute; z-index: 50; height: 100vh; }
+            .orderbook { width: 0; border-left: none; }
+            .orderbook:not(.collapsed) { width: 160px; position: absolute; right: 0; z-index: 50; height: 100vh; }
+            .tickers { display: none; }
+            .toolbar { gap: 4px; padding: 3px 6px; }
+            .icon-btn { padding: 2px 5px; font-size: 11px; }
+            .info-bar { gap: 6px; padding: 2px 8px; font-size: 11px; }
+            .info-bar .ticker-name { font-size: 13px; }
+            .info-bar .price { font-size: 12px; }
+            #ticker-search { width: 90px; font-size: 11px; }
+            .bottom-panel { height: 120px; }
+            .vsep { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -200,6 +220,12 @@
     let rsiSeries, macdLineSrs, macdSignalSrs, macdHistSrs;
     let srLines = [], drawSeries = [], drawPriceLines = [], alertLines = [];
     let drawMode = null, pendingPoint = null;
+    function exitDrawMode(msg) {
+        drawMode = null; pendingPoint = null;
+        document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+        document.getElementById('chart-container').classList.remove('draw-active');
+        if (msg) setStatus(msg);
+    }
 
     // ---- UI ----
     document.getElementById('wl-toggle').onclick = () => { document.getElementById('watchlist').classList.toggle('collapsed'); setTimeout(resizeChart, 250); };
@@ -231,25 +257,17 @@
         if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook();
     }
 
-    // Drawing tool buttons
+    // Drawing tool buttons — click-on-chart mode
     document.querySelectorAll('[data-tool]').forEach(btn => {
         btn.onclick = () => {
             const tool = btn.dataset.tool;
-            if (tool === 'hline') { const p = parseFloat(prompt('Цена уровня:')); if (!isNaN(p)) { saveDrawing({ type: 'hline', price: p }); renderDrawings(); } }
-            else if (tool === 'alert') {
-                const p = parseFloat(prompt('Цена алерта:')); if (isNaN(p)) return;
-                const last = lastData.length ? lastData[lastData.length-1].close : p;
-                addAlert(currentTicker, p, p >= last ? 'above' : 'below');
-                requestPermission(); renderAlerts(); renderAlertLines();
-            }
-            else if (tool === 'fib') {
-                const hi = parseFloat(prompt('Максимум (high):')); const lo = parseFloat(prompt('Минимум (low):'));
-                if (!isNaN(hi) && !isNaN(lo)) { saveDrawing({ type: 'fib', high: hi, low: lo }); renderDrawings(); }
-            }
-            else if (tool === 'trend') {
-                drawMode = drawMode === 'trend' ? null : 'trend'; pendingPoint = null;
-                document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b === btn && drawMode));
-                setStatus(drawMode ? 'Трендлиния: кликните первую точку' : '');
+            if (tool === 'hline' || tool === 'alert' || tool === 'fib' || tool === 'trend') {
+                if (drawMode === tool) { drawMode = null; pendingPoint = null; }
+                else { drawMode = tool; pendingPoint = null; }
+                document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === drawMode));
+                document.getElementById('chart-container').classList.toggle('draw-active', !!drawMode);
+                const hints = { hline: 'Уровень: кликните на графике', alert: 'Алерт: кликните на графике', fib: 'Фибо: кликните верхнюю точку', trend: 'Тренд: кликните первую точку' };
+                setStatus(drawMode ? hints[drawMode] : '');
             }
         };
     });
@@ -313,17 +331,35 @@
 
         chart.subscribeCrosshairMove(param => { if (!param.time) return; const d = dataLookup.get(timeKey(param.time)); if (d) updateInfo(d); });
         chart.subscribeClick(param => {
-            if (drawMode !== 'trend' || !param.time || !param.point) return;
+            if (!drawMode || !param.time || !param.point) return;
             const price = candleSeries.coordinateToPrice(param.point.y);
             if (price == null) return;
-            if (!pendingPoint) { pendingPoint = { time: param.time, price }; setStatus('Трендлиния: кликните вторую точку'); }
-            else {
-                saveDrawing({ type: 'trend', p1: pendingPoint, p2: { time: param.time, price } });
-                pendingPoint = null; drawMode = null;
-                document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
-                setStatus(''); renderDrawings();
+            const roundP = Math.round(price * 100) / 100;
+
+            if (drawMode === 'hline') {
+                saveDrawing({ type: 'hline', price: roundP }); renderDrawings();
+                exitDrawMode(`Уровень ${roundP.toFixed(2)} добавлен`);
+            } else if (drawMode === 'alert') {
+                const last = lastData.length ? lastData[lastData.length-1].close : roundP;
+                addAlert(currentTicker, roundP, roundP >= last ? 'above' : 'below');
+                requestPermission(); renderAlerts(); renderAlertLines();
+                exitDrawMode(`Алерт на ${roundP.toFixed(2)} добавлен`);
+            } else if (drawMode === 'fib') {
+                if (!pendingPoint) { pendingPoint = { time: param.time, price: roundP }; setStatus('Фибо: кликните нижнюю точку'); }
+                else {
+                    const hi = Math.max(pendingPoint.price, roundP), lo = Math.min(pendingPoint.price, roundP);
+                    saveDrawing({ type: 'fib', high: hi, low: lo }); renderDrawings();
+                    exitDrawMode(`Фибоначчи ${lo.toFixed(2)}–${hi.toFixed(2)} добавлен`);
+                }
+            } else if (drawMode === 'trend') {
+                if (!pendingPoint) { pendingPoint = { time: param.time, price: roundP }; setStatus('Тренд: кликните вторую точку'); }
+                else {
+                    saveDrawing({ type: 'trend', p1: pendingPoint, p2: { time: param.time, price: roundP } });
+                    renderDrawings(); exitDrawMode('');
+                }
             }
         });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawMode) exitDrawMode('Отменено'); });
         window.addEventListener('resize', resizeChart);
     }
 
@@ -439,8 +475,8 @@
             rec = lastSig.type === 'BUY' ? 'buy' : 'sell';
             recText = lastSig.type === 'BUY' ? 'ПОКУПКА' : 'ПРОДАЖА';
             const a = atr.length ? atr[atr.length-1].value : last.close * 0.02;
-            if (lastSig.type === 'BUY') { stop = entry - a * 1.5; target = entry + a * 3; }
-            else { stop = entry + a * 1.5; target = entry - a * 3; }
+            if (lastSig.type === 'BUY') { stop = entry - a * 2; target = entry + a * 3; }
+            else { stop = entry + a * 2; target = entry - a * 3; }
         }
         html += `<div class="adv-rec ${rec}"><b class="${rec === 'buy' ? 'green' : rec === 'sell' ? 'red' : 'muted'}">Рекомендация: ${recText}</b>`;
         if (stop != null) {
@@ -460,7 +496,7 @@
         if (!sigs.length) { body.innerHTML = '<span class="muted">Сигналов нет</span>'; return; }
         let html = '<table class="data"><thead><tr><th>Время</th><th>Тип</th><th>Сила</th><th>Цена</th><th>Причины</th></tr></thead><tbody>';
         for (const s of sigs) {
-            html += `<tr><td>${timeKey(s.time)}</td><td class="${s.type === 'BUY' ? 'green' : 'red'}">${s.type}</td><td>${s.score}/4</td><td>${s.price.toFixed(2)}</td><td class="muted">${s.reasons.join(', ')}</td></tr>`;
+            html += `<tr><td>${timeKey(s.time)}</td><td class="${s.type === 'BUY' ? 'green' : 'red'}">${s.type}</td><td>${s.score}/5</td><td>${s.price.toFixed(2)}</td><td class="muted">${s.reasons.join(', ')}</td></tr>`;
         }
         body.innerHTML = html + '</tbody></table>';
     }
@@ -542,7 +578,7 @@
             if (idx == null || idx + 1 >= data.length) continue;
             const entry = data[idx + 1].open;
             const a = atrMap.get(timeKey(sig.time)) || entry * 0.02;
-            const sl = sig.type === 'BUY' ? entry - a * 1.5 : entry + a * 1.5;
+            const sl = sig.type === 'BUY' ? entry - a * 2 : entry + a * 2;
             const tp = sig.type === 'BUY' ? entry + a * 3 : entry - a * 3;
             let exitPrice = null, exitReason = '';
             for (let j = idx + 1; j < Math.min(idx + 21, data.length); j++) {

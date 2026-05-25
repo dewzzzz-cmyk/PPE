@@ -157,6 +157,16 @@ export function findSR(data, win = 5, threshold = 0.01) {
     return clustered.sort((a, b) => b.touches - a.touches).slice(0, 6);
 }
 
+export function calcVolSMA(data, period = 20) {
+    const result = [];
+    for (let i = period - 1; i < data.length; i++) {
+        let sum = 0;
+        for (let j = i - period + 1; j <= i; j++) sum += data[j].volume;
+        result.push({ time: data[i].time, value: sum / period });
+    }
+    return result;
+}
+
 export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
     const signals = [];
     const rMap = new Map(), mMap = new Map(), s20 = new Map(), s50 = new Map(), bU = new Map(), bL = new Map();
@@ -167,6 +177,10 @@ export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
     for (const s of sma50) s50.set(tk(s.time), s.value);
     for (const b of bbData.upper) bU.set(tk(b.time), b.value);
     for (const b of bbData.lower) bL.set(tk(b.time), b.value);
+
+    const volSma = calcVolSMA(data, 20);
+    const vMap = new Map();
+    for (const v of volSma) vMap.set(tk(v.time), v.value);
 
     for (let i = 1; i < data.length - 1; i++) {
         const key = tk(data[i].time), pkey = tk(data[i-1].time);
@@ -179,8 +193,8 @@ export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
         }
         const r = rMap.get(key);
         if (r !== undefined) {
-            if (r < 30) { buy++; reasons.push('RSI перепродан'); }
-            if (r > 70) { sell++; reasons.push('RSI перекуплен'); }
+            if (r < 35) { buy++; reasons.push('RSI перепродан'); }
+            if (r > 65) { sell++; reasons.push('RSI перекуплен'); }
         }
         const mc = mMap.get(key), pm = mMap.get(pkey);
         if (mc && pm) {
@@ -190,6 +204,12 @@ export function generateSignals(data, rsi, macdData, sma20, sma50, bbData) {
         const bl = bL.get(key), bu = bU.get(key);
         if (bl !== undefined && data[i].close <= bl) { buy++; reasons.push('Цена у нижней BB'); }
         if (bu !== undefined && data[i].close >= bu) { sell++; reasons.push('Цена у верхней BB'); }
+
+        const avgVol = vMap.get(key);
+        if (avgVol && data[i].volume > avgVol * 1.5) {
+            buy++; sell++;
+            reasons.push('Всплеск объёма');
+        }
 
         if (buy >= 2) signals.push({ time: data[i].time, type: 'BUY', score: buy, price: data[i].close, low: data[i].low, reasons });
         else if (sell >= 2) signals.push({ time: data[i].time, type: 'SELL', score: sell, price: data[i].close, high: data[i].high, reasons });
