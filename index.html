@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOEX Trading Terminal</title>
+    <meta name="description" content="Профессиональный торговый терминал Московской биржи — графики, стакан, скринер, тепловая карта, 67 инструментов рисования">
+    <meta property="og:title" content="MOEX Trading Terminal">
+    <meta property="og:description" content="Торговый терминал MOEX — котировки, аналитика, стакан, мультичарт">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#0a0e17">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='15' width='100' height='100' fill='%230a0e17'/><text x='50' y='68' text-anchor='middle' font-size='50' fill='%232962ff'>M</text></svg>">
     <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
     <script>if(typeof LightweightCharts==='undefined')document.write('<script src="vendor/lightweight-charts.standalone.production.js"><\/script>')</script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -80,7 +86,8 @@
         .info-bar .label { color: #4b5563; font-weight: 500; }
         .info-bar .val { color: #9ca3af; margin-left: 3px; font-weight: 500; }
         .info-bar .sep { color: #1e2a3a; }
-        .delay-badge { background: rgba(255,152,0,0.1); color: #f59e0b; font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,152,0,0.2); margin-left: auto; font-weight: 500; }
+        .delay-badge { background: rgba(255,152,0,0.12); color: #f59e0b; font-size: 10px; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,152,0,0.25); margin-left: auto; font-weight: 600; letter-spacing: 0.3px; animation: delayPulse 3s ease-in-out infinite; }
+        @keyframes delayPulse { 0%,100%{opacity:0.8} 50%{opacity:1} }
         .ticker-search-wrap { position: relative; }
         #ticker-search { background: #151d2e; border: 1px solid #1e2a3a; color: #d1d4dc; padding: 4px 10px; border-radius: 6px; font-size: 12px; width: 140px; outline: none; transition: all 0.2s ease; }
         #ticker-search:focus { border-color: #2962ff; box-shadow: 0 0 12px rgba(41,98,255,0.15); }
@@ -134,7 +141,8 @@
         #heatmap-container { width: 100%; height: 100%; min-height: 130px; }
         #screener-table { height: 100%; }
 
-        .status-bar { padding: 4px 14px; font-size: 11px; color: #4b5563; background: linear-gradient(90deg, #0d1117, #111827); border-top: 1px solid #1e2a3a; flex-shrink: 0; }
+        .status-bar { padding: 4px 14px; font-size: 11px; color: #4b5563; background: linear-gradient(90deg, #0d1117, #111827); border-top: 1px solid #1e2a3a; flex-shrink: 0; transition: color 0.2s; }
+        .disclaimer { padding: 2px 14px; font-size: 9px; color: #3b4050; background: #080b12; text-align: center; border-top: 1px solid #111827; flex-shrink: 0; }
 
         .orderbook { width: 240px; background: linear-gradient(180deg, #111827 0%, #0f1520 100%); border-left: 1px solid #1e2a3a; display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s ease; overflow: hidden; }
         .orderbook.collapsed { width: 0; border-left: none; }
@@ -182,6 +190,7 @@
         .gutter.gutter-horizontal { cursor: col-resize; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="2" height="20"><rect fill="%232962ff40" width="2" height="20" rx="1"/></svg>'); }
         .gutter.gutter-vertical { cursor: row-resize; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="2"><rect fill="%232962ff40" width="20" height="2" rx="1"/></svg>'); }
 
+        #chart-container { transition: opacity 0.2s ease; }
         #chart-container.draw-active { cursor: crosshair; }
         #chart-container.draw-active::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #2962ff; pointer-events: none; z-index: 10; animation: drawPulse 1.5s infinite; }
         @keyframes drawPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
@@ -293,7 +302,7 @@
                 <span><span class="label">RSI</span><span class="val" id="info-rsi">&mdash;</span></span>
                 <span><span class="label">MACD</span><span class="val" id="info-macd">&mdash;</span></span>
                 <span class="regime-badge" id="regime-badge" style="display:none"></span>
-                <span class="delay-badge">~15 мин</span>
+                <span class="delay-badge" title="Данные MOEX ISS — задержка ~15 минут. Не является инвестиционной рекомендацией.">&#9203; ~15 мин задержка</span>
             </div>
             <div id="chart-container"><div class="cross-tip" id="cross-tip"></div></div>
             <div class="bottom-panel" id="bottom-panel">
@@ -321,6 +330,7 @@
             <div class="ob-body" id="ob-body"></div>
         </aside>
     </div>
+    <div class="disclaimer">Данные MOEX ISS с задержкой ~15 мин · Не является инвестиционной рекомендацией · Используйте на свой риск</div>
     <div class="multichart-overlay" id="multichart-overlay">
         <div class="mc-header"><h2>Мультичарт</h2><button class="mc-close" id="mc-close">Закрыть (Esc)</button></div>
         <div class="mc-grid" id="mc-grid"></div>
@@ -334,6 +344,12 @@
     const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = LightweightCharts;
     const createTextWatermark = LightweightCharts.createTextWatermark;
     const DRAW_KEY = 'moex_drawings_v2';
+    const TOOL_NAMES_RU = {
+        'trend-line': 'Трендовая линия', 'horizontal-line': 'Уровень', 'vertical-line': 'Вертикаль',
+        'fib-retracement': 'Фибоначчи', 'rectangle': 'Прямоугольник', 'brush': 'Кисть',
+        'ray': 'Луч', 'arrow': 'Стрелка', 'channel': 'Канал', 'pitchfork': 'Вилы',
+        'extended-line': 'Продлённая линия', 'circle': 'Круг', 'ellipse': 'Эллипс',
+    };
     const hasECharts = typeof echarts !== 'undefined';
     const hasSplit = typeof Split !== 'undefined';
     const hasTabulator = typeof Tabulator !== 'undefined';
@@ -410,7 +426,9 @@
         currentTicker = t;
         tickerBar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.ticker === t));
         document.querySelectorAll('.wl-item').forEach(el => el.classList.toggle('active', el.dataset.ticker === t));
-        loadData();
+        const cc = document.getElementById('chart-container');
+        cc.style.opacity = '0.4';
+        loadData().then(() => { cc.style.opacity = '1'; }).catch(() => { cc.style.opacity = '1'; });
         if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook();
     }
 
@@ -633,11 +651,12 @@
                 const id = 'd' + Date.now() + Math.floor(Math.random()*1000);
                 const drawing = toolRegistry.createDrawing(activeDrawTool, id, pendingAnchors.slice(), { lineColor: '#2962ff', lineWidth: 2 });
                 if (drawing) drawManager.addDrawing(drawing);
-                const name = def ? def.name : activeDrawTool;
+                const name = TOOL_NAMES_RU[activeDrawTool] || (def ? def.name : activeDrawTool);
                 pendingAnchors = [];
-                setStatus(`${name} добавлен · кликните снова или Esc для выхода`);
+                setStatus(`✅ ${name} добавлен · кликните снова или Esc для выхода`);
             } else {
-                setStatus(`${def ? def.name : activeDrawTool}: точка ${pendingAnchors.length}/${need}, кликните ещё`);
+                const name = TOOL_NAMES_RU[activeDrawTool] || (def ? def.name : activeDrawTool);
+                setStatus(`✏ ${name}: точка ${pendingAnchors.length}/${need}, кликните ещё`);
             }
         });
     }
@@ -681,11 +700,12 @@
         const def = toolRegistry.get(type);
         const drawBtn = document.getElementById('draw-btn');
         drawBtn.classList.add('active');
-        drawBtn.title = def ? def.name : type;
+        const nameRu = TOOL_NAMES_RU[type] || (def ? def.name : type);
+        drawBtn.title = nameRu;
         document.querySelectorAll('.draw-tool').forEach(b => b.classList.toggle('active', b.dataset.tool === type));
         document.getElementById('chart-container').classList.add('draw-active');
         document.getElementById('status').classList.add('draw-active');
-        setStatus(`✏ ${def ? def.name : type}: кликните на графике (точек: ${def ? def.requiredAnchors : 2}) · Esc = выход`);
+        setStatus(`✏ ${nameRu}: кликните на графике (точек: ${def ? def.requiredAnchors : 2}) · Esc = выход`);
     }
 
     function saveDrawings() {
@@ -1072,13 +1092,14 @@
     }
 
     // ---- Load Data ----
-    async function loadData() {
+    let isAutoRefresh = false;
+    async function loadData(auto) {
         const status = document.getElementById('status');
-        status.textContent = `Загрузка ${currentTicker}...`;
+        if (!auto) status.textContent = `Загрузка ${currentTicker}...`;
         document.getElementById('info-ticker').textContent = currentTicker;
         try {
             const data = await fetchCandles(currentTicker, currentTF.interval, currentTF.days);
-            if (!data.length) { status.textContent = 'Нет данных'; return; }
+            if (!data.length) { if (!auto) status.textContent = 'Нет данных'; return; }
             lastData = data;
 
             const sma20 = calcSMA(data, 20), sma50 = calcSMA(data, 50);
@@ -1115,13 +1136,15 @@
             updateRangeBar(last);
             updateWatermark();
 
-            renderSR(); renderSignalMarkers(); loadDrawingsForTicker(); renderAlertLines(); refreshOverlays();
+            renderSR(); renderSignalMarkers(); renderAlertLines(); refreshOverlays();
+            if (!auto) { loadDrawingsForTicker(); }
             renderAdvisor(); renderSignalsTable(); renderAlerts(); runBacktest();
             checkAlerts(currentTicker, last.close);
 
-            chart.timeScale().fitContent();
-            status.textContent = `${currentTicker} · ${data.length} свечей · ${signals.length} сигналов · ${new Date().toLocaleTimeString('ru')}`;
-        } catch (e) { status.textContent = 'Ошибка: ' + e.message; }
+            if (!auto) chart.timeScale().fitContent();
+            const ts = new Date().toLocaleTimeString('ru');
+            status.textContent = `${currentTicker} · ${data.length} свечей · ${signals.length} сигналов · ${ts}`;
+        } catch (e) { if (!auto) status.textContent = 'Ошибка: ' + e.message; }
     }
 
     // ---- Watchlist + Sparklines ----
@@ -1495,6 +1518,7 @@
     setInterval(refreshWatchlist, 60000);
     setInterval(() => { if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook(); }, 30000);
     setInterval(fetchSparkData, 300000);
+    setInterval(() => loadData(true), 60000);
     </script>
 </body>
 </html>
