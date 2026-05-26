@@ -9,7 +9,10 @@
     <meta property="og:description" content="Торговый терминал MOEX — котировки, аналитика, стакан, мультичарт">
     <meta property="og:type" content="website">
     <meta name="theme-color" content="#0a0e17">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='15' width='100' height='100' fill='%230a0e17'/><text x='50' y='68' text-anchor='middle' font-size='50' fill='%232962ff'>M</text></svg>">
+    <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js"></script>
     <script>if(typeof LightweightCharts==='undefined')document.write('<script src="vendor/lightweight-charts.standalone.production.js"><\/script>')</script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -195,6 +198,18 @@
         #chart-container.draw-active::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #2962ff; pointer-events: none; z-index: 10; animation: drawPulse 1.5s infinite; }
         @keyframes drawPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
         #status.draw-active { color: #2962ff; }
+        #status.offline { color: #ef5350; }
+        .conn-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+        .conn-dot.online { background: #26a69a; box-shadow: 0 0 4px #26a69a; }
+        .conn-dot.offline { background: #ef5350; box-shadow: 0 0 4px #ef5350; }
+
+        .help-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+        .help-modal.show { display:flex; }
+        .help-box { background:#151d2e; border:1px solid #2962ff40; border-radius:12px; padding:24px 32px; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+        .help-box h3 { color:#e1e4ec; margin-bottom:16px; font-size:16px; }
+        .help-row { display:flex; justify-content:space-between; padding:4px 0; font-size:12px; border-bottom:1px solid #1e2a3a20; }
+        .help-key { background:#111827; color:#2962ff; padding:2px 8px; border-radius:4px; font-family:monospace; font-weight:700; font-size:11px; min-width:24px; text-align:center; }
+        .help-desc { color:#9ca3af; }
 
         /* Drawing toolbar dropdown */
         .draw-wrap { position: relative; }
@@ -322,7 +337,7 @@
                 <div class="panel-body" id="heatmap-body"><div id="heatmap-container"></div></div>
                 <div class="panel-body" id="screener-body"><div id="screener-table"></div></div>
             </div>
-            <div class="status-bar" id="status">Загрузка...</div>
+            <div class="status-bar" id="status"><span class="conn-dot online" id="conn-dot"></span>Загрузка...</div>
         </div>
         <aside class="orderbook collapsed" id="orderbook">
             <div class="side-header">Глубина рынка</div>
@@ -331,6 +346,25 @@
         </aside>
     </div>
     <div class="disclaimer">Данные MOEX ISS с задержкой ~15 мин · Не является инвестиционной рекомендацией · Используйте на свой риск</div>
+    <div class="help-modal" id="help-modal">
+        <div class="help-box">
+            <h3>Горячие клавиши</h3>
+            <div class="help-row"><span class="help-key">1-6</span><span class="help-desc">Таймфрейм (1м, 10м, 1ч, 1д, 1н, 1мес)</span></div>
+            <div class="help-row"><span class="help-key">&larr; &rarr;</span><span class="help-desc">Переключить тикер</span></div>
+            <div class="help-row"><span class="help-key">T</span><span class="help-desc">Трендовая линия</span></div>
+            <div class="help-row"><span class="help-key">H</span><span class="help-desc">Горизонтальный уровень</span></div>
+            <div class="help-row"><span class="help-key">F</span><span class="help-desc">Фибоначчи</span></div>
+            <div class="help-row"><span class="help-key">R</span><span class="help-desc">Прямоугольник</span></div>
+            <div class="help-row"><span class="help-key">V</span><span class="help-desc">Вертикальная линия</span></div>
+            <div class="help-row"><span class="help-key">B</span><span class="help-desc">Кисть</span></div>
+            <div class="help-row"><span class="help-key">A</span><span class="help-desc">Алерт по цене</span></div>
+            <div class="help-row"><span class="help-key">M</span><span class="help-desc">Мультичарт 2x2</span></div>
+            <div class="help-row"><span class="help-key">C</span><span class="help-desc">Очистить все рисунки</span></div>
+            <div class="help-row"><span class="help-key">Del</span><span class="help-desc">Удалить выбранный объект</span></div>
+            <div class="help-row"><span class="help-key">Esc</span><span class="help-desc">Отмена / закрытие</span></div>
+            <div class="help-row"><span class="help-key">?</span><span class="help-desc">Эта справка</span></div>
+        </div>
+    </div>
     <div class="multichart-overlay" id="multichart-overlay">
         <div class="mc-header"><h2>Мультичарт</h2><button class="mc-close" id="mc-close">Закрыть (Esc)</button></div>
         <div class="mc-grid" id="mc-grid"></div>
@@ -402,7 +436,15 @@
 
     // ---- UI ----
     document.getElementById('wl-toggle').onclick = () => { document.getElementById('watchlist').classList.toggle('collapsed'); setTimeout(resizeChart, 250); };
-    document.getElementById('ob-toggle').onclick = () => { const o = document.getElementById('orderbook'); o.classList.toggle('collapsed'); if (!o.classList.contains('collapsed')) refreshOrderBook(); setTimeout(resizeChart, 250); };
+    document.getElementById('ob-toggle').onclick = () => {
+        const o = document.getElementById('orderbook');
+        o.classList.toggle('collapsed');
+        if (!o.classList.contains('collapsed')) {
+            refreshOrderBook();
+            if (depthEChart) setTimeout(() => depthEChart.resize(), 300);
+        }
+        setTimeout(resizeChart, 250);
+    };
 
     const tickerBar = document.getElementById('ticker-bar');
     TICKERS.forEach((t, i) => {
@@ -519,7 +561,7 @@
         document.getElementById('chart-container').addEventListener('mouseleave', () => document.getElementById('cross-tip').classList.remove('show'));
         document.addEventListener('keydown', e => {
             if (e.target.tagName === 'INPUT') return;
-            if (e.key === 'Escape') { if (activeDrawTool || alertMode) { exitDrawMode('Отменено'); return; } if (drawManager && drawManager.getSelectedDrawing()) { drawManager.deselectAll(); return; } if (document.getElementById('multichart-overlay').classList.contains('show')) { closeMultichart(); return; } }
+            if (e.key === 'Escape') { if (document.getElementById('help-modal').classList.contains('show')) { toggleHelpModal(); return; } if (activeDrawTool || alertMode) { exitDrawMode('Отменено'); return; } if (drawManager && drawManager.getSelectedDrawing()) { drawManager.deselectAll(); return; } if (document.getElementById('multichart-overlay').classList.contains('show')) { closeMultichart(); return; } }
             if ((e.key === 'Delete' || e.key === 'Backspace') && drawManager) { const sel = drawManager.getSelectedDrawing(); if (sel) { drawManager.removeDrawing(sel.id); saveDrawings(); setStatus('Объект удалён'); return; } }
             if (e.key === 'm' || e.key === 'M') { if (document.getElementById('multichart-overlay').classList.contains('show')) closeMultichart(); else openMultichart(); return; }
             if (e.key >= '1' && e.key <= '6') { const idx = parseInt(e.key) - 1; if (idx < TIMEFRAMES.length) { const btns = tfBar.querySelectorAll('button'); btns.forEach(b => b.classList.remove('active')); btns[idx]?.classList.add('active'); currentTF = TIMEFRAMES[idx]; loadData(); } return; }
@@ -532,6 +574,7 @@
             if (toolMap[e.key]) { activateDrawTool(toolMap[e.key]); return; }
             if (e.key === 'a' || e.key === 'A') { document.querySelector('[data-tool="alert"]')?.click(); return; }
             if (e.key === 'c' || e.key === 'C') { document.getElementById('clear-draw')?.click(); return; }
+            if (e.key === '?') { toggleHelpModal(); return; }
         });
         window.addEventListener('resize', resizeChart);
     }
@@ -554,6 +597,11 @@
 
     function resizeChart() { const el = document.getElementById('chart-container'); chart.applyOptions({ width: el.clientWidth, height: el.clientHeight }); }
     function setStatus(t) { if (t) document.getElementById('status').textContent = t; }
+    function setStatusMsg(text, ok) {
+        const el = document.getElementById('status');
+        el.innerHTML = `<span class="conn-dot ${ok ? 'online' : 'offline'}" id="conn-dot"></span>`;
+        el.appendChild(document.createTextNode(text));
+    }
 
     // ---- Helpers ----
     function formatVol(v) {
@@ -1143,8 +1191,10 @@
 
             if (!auto) chart.timeScale().fitContent();
             const ts = new Date().toLocaleTimeString('ru');
-            status.textContent = `${currentTicker} · ${data.length} свечей · ${signals.length} сигналов · ${ts}`;
-        } catch (e) { if (!auto) status.textContent = 'Ошибка: ' + e.message; }
+            setStatusMsg(`${currentTicker} · ${data.length} свечей · ${signals.length} сигналов · ${ts}`, true);
+        } catch (e) {
+            if (!auto) setStatusMsg('Ошибка: ' + e.message, false);
+        }
     }
 
     // ---- Watchlist + Sparklines ----
@@ -1321,6 +1371,7 @@
     function openMultichart() {
         const overlay = document.getElementById('multichart-overlay');
         overlay.classList.add('show');
+        overlay.focus();
         const grid = document.getElementById('mc-grid');
         grid.innerHTML = '';
         mcCharts.forEach(c => c.chart.remove());
@@ -1392,11 +1443,22 @@
         } catch {}
     }
 
+    function toggleHelpModal() {
+        const m = document.getElementById('help-modal');
+        m.classList.toggle('show');
+    }
+    document.getElementById('help-modal').addEventListener('click', e => { if (e.target.id === 'help-modal') toggleHelpModal(); });
+
     function closeMultichart() {
-        document.getElementById('multichart-overlay').classList.remove('show');
-        mcCharts.forEach(c => c.chart.remove());
+        const overlay = document.getElementById('multichart-overlay');
+        overlay.classList.remove('show');
+        mcCharts.forEach(c => { try { c.chart.remove(); } catch {} });
         mcCharts = [];
     }
+
+    const mcOverlay = document.getElementById('multichart-overlay');
+    mcOverlay.tabIndex = -1;
+    mcOverlay.addEventListener('keydown', e => { if (e.key === 'Escape') closeMultichart(); });
 
     // ---- Ticker Tape ----
     document.getElementById('ticker-tape').addEventListener('click', e => {
@@ -1519,6 +1581,18 @@
     setInterval(() => { if (!document.getElementById('orderbook').classList.contains('collapsed')) refreshOrderBook(); }, 30000);
     setInterval(fetchSparkData, 300000);
     setInterval(() => loadData(true), 60000);
+    setInterval(() => { if (screenerTable) refreshWatchlist(); }, 300000);
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+    function updateConnStatus() {
+        const dot = document.getElementById('conn-dot');
+        const st = document.getElementById('status');
+        if (navigator.onLine) { dot.className = 'conn-dot online'; st.classList.remove('offline'); }
+        else { dot.className = 'conn-dot offline'; st.classList.add('offline'); st.textContent = 'Нет подключения к интернету'; }
+    }
+    window.addEventListener('online', () => { updateConnStatus(); loadData(); refreshWatchlist(); });
+    window.addEventListener('offline', updateConnStatus);
     </script>
 </body>
 </html>
